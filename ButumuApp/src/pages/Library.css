@@ -1,0 +1,71 @@
+@media (min-width: 768px) {
+  .library-page {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+.upload-area {
+  display: block;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.upload-area:hover {
+  background: var(--hover-bg);
+}
+
+.lib-error {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 0.5px solid var(--border);
+}
+
+.file-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.file-info {
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.file-actions .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  text-decoration: none;
+}

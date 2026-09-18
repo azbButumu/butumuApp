@@ -1,0 +1,7 @@
+name = "butumu-library"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[r2_buckets]]
+binding = "LIBRARY_BUCKET"
+bucket_name = "butumu-library"

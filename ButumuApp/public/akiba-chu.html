@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>秋葉注</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue, remove, push, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBe_xxS7IZKde-UPc3Qrv9Ud4FXMI2HUlE",
+    authDomain: "akiba-chu.firebaseapp.com",
+    databaseURL: "https://akiba-chu-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "akiba-chu",
+    storageBucket: "akiba-chu.firebasestorage.app",
+    messagingSenderId: "56990994439",
+    appId: "1:56990994399:web:89173dd078cdfec7aa1aa2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window._fb = { db, ref, set, onValue, remove, push, update };
+</script>
+</head>
+<body>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbf6da; color: #1a1a1a; min-height: 100vh; font-size: 14px; }
+html { background: #fbf6da; }
+.app-header { background: #fff; border-bottom: 0.5px solid #ddd; padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; }
+.app-header h1 { font-size: 17px; font-weight: 500; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.mode-pill { font-size: 11px; padding: 3px 10px; border-radius: 99px; border: 0.5px solid #ccc; cursor: pointer; background: #f0f0f0; color: #555; }
+.mode-pill.buyer { background: #dbeafe; color: #1d4ed8; border-color: transparent; }
+.mode-pill.admin { background: #fef9c3; color: #a16207; border-color: transparent; }
+.tabs { display: flex; background: #fff; border-bottom: 0.5px solid #ddd; overflow-x: auto; }
+.tab { flex: 1; min-width: 60px; padding: 10px 6px; text-align: center; font-size: 12px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 500; }
+.view { display: none; padding: 14px; }
+.view.active { display: block; }
+.section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 6px; }
+.section-label:first-child { margin-top: 0; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 7px; margin-bottom: 6px; }
+.quick-card { background: #fff; border: 0.5px solid #ddd; border-radius: 8px; padding: 9px 7px 7px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.quick-card .icon { font-size: 18px; line-height: 1; }
+.quick-card .qname { font-size: 11px; line-height: 1.3; color: #666; }
+.qty-ctrl { display: flex; align-items: center; gap: 5px; }
+.qty-ctrl button { width: 22px; height: 22px; border-radius: 50%; border: 0.5px solid #ccc; background: #f5f5f5; font-size: 15px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1a1a1a; }
+.qty-ctrl span { font-size: 13px; font-weight: 500; min-width: 18px; text-align: center; }
+.add-btn { width: 100%; padding: 5px 0; font-size: 11px; border-radius: 6px; border: 0.5px solid #ccc; background: #f5f5f5; color: #1a1a1a; cursor: pointer; transition: background 0.1s; }
+.add-btn:hover { background: #ebebeb; }
+.add-btn:active { transform: scale(0.97); }
+.card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.form-row { margin-bottom: 10px; }
+.form-row label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+.form-row input, .form-row textarea, .form-row select { width: 100%; padding: 8px 10px; font-size: 13px; border: 0.5px solid #ddd; border-radius: 6px; background: #f9f9f9; color: #1a1a1a; resize: vertical; }
+.form-row textarea { min-height: 64px; }
+.upload-area { border: 1px dashed #bbb; border-radius: 6px; padding: 12px; text-align: center; font-size: 13px; color: #888; cursor: pointer; }
+.upload-area:hover { background: #f5f5f5; }
+.img-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.img-thumb-wrap { position: relative; }
+.img-thumb { width: 54px; height: 54px; border-radius: 6px; object-fit: cover; border: 0.5px solid #ddd; display: block; }
+.img-thumb-wrap .del { position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%; background: #fee2e2; color: #dc2626; font-size: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+.btn-primary { width: 100%; padding: 10px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.btn-primary:hover { opacity: 0.85; }
+.summary-bar { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; display: flex; gap: 12px; justify-content: space-around; }
+.sum-item { text-align: center; }
+.sum-item .num { font-size: 20px; font-weight: 500; }
+.sum-item .lbl { font-size: 11px; color: #888; }
+.filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-pill { padding: 4px 11px; border-radius: 99px; font-size: 12px; cursor: pointer; border: 0.5px solid #ccc; background: #fff; color: #666; }
+.filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.order-item { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 11px 13px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+.order-item.done { opacity: 0.5; }
+.order-item .info { flex: 1; min-width: 0; }
+.order-item .name { font-size: 14px; font-weight: 500; }
+.order-item .meta { font-size: 12px; color: #888; margin-top: 2px; }
+.order-item .note { font-size: 12px; color: #666; margin-top: 4px; background: #f5f5f5; padding: 4px 8px; border-radius: 6px; }
+.order-item .url-link { font-size: 11px; color: #2563eb; margin-top: 3px; word-break: break-all; }
+.order-item .actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.status-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; font-weight: 600; }
+.s-pending { background: #fef9c3; color: #92400e; }
+.s-bought { background: #dcfce7; color: #166534; }
+.s-unavail { background: #fee2e2; color: #991b1b; }
+.s-partial { background: #fed7aa; color: #9a3412; }
+.icon-btn { border: 0.5px solid #ddd; background: transparent; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: #666; }
+.icon-btn:hover { background: #f5f5f5; }
+.mark-row { display: flex; gap: 4px; margin-top: 6px; }
+.mark-btn { flex: 1; padding: 8px 4px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 2px solid #ddd; cursor: pointer; background: #f0f0f0; color: #999; transition: all 0.1s; }
+.mark-btn:hover { filter: brightness(0.95); }
+.mark-btn.bought { background: #dcfce7; color: #15803d; border-color: #4ade80; }
+.mark-btn.unavail { background: #fee2e2; color: #b91c1c; border-color: #f87171; }
+.mark-btn.partial-active { background: #fed7aa; color: #9a3412; border-color: #fb923c; }
+.mark-btn.pending-active { background: #fef9c3; color: #92400e; border-color: #fde68a; }
+.partial-input-row { display:flex; align-items:center; gap:8px; margin:12px 0; }
+.partial-input-row input { flex:1; padding:10px; font-size:18px; font-weight:600; text-align:center; border:1.5px solid #ddd; border-radius:8px; background:#f9f9f9; }
+.empty-state { text-align: center; padding: 40px 0; color: #aaa; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 8px 18px; border-radius: 99px; font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; }
+.modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 12px; }
+.modal p { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.6; }
+.modal-btns { display: flex; gap: 8px; }
+.modal-btns button { flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 0.5px solid #ccc; background: #f5f5f5; color: #1a1a1a; }
+.modal-btns button.danger { background: #fee2e2; color: #dc2626; border-color: transparent; }
+.preset-editor-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.preset-editor-row input, .preset-editor-row select { padding: 6px 8px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 6px; background: #f9f9f9; color: #1a1a1a; }
+.preset-editor-row input { flex: 1; }
+.preset-editor-row .del-btn { padding: 6px 8px; font-size: 12px; border-radius: 6px; border: 0.5px solid #ddd; cursor: pointer; background: transparent; color: #dc2626; }
+.add-preset-btn { font-size: 12px; padding: 6px 12px; border-radius: 6px; border: 0.5px dashed #bbb; background: transparent; color: #888; cursor: pointer; width: 100%; margin-top: 4px; }
+.hist-session { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+.hist-session-header { padding: 10px 14px; background: #f9f9f9; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.hist-session-header .date { font-size: 13px; font-weight: 500; }
+.hist-session-header .stats { font-size: 11px; color: #888; }
+.hist-item { padding: 8px 14px; border-top: 0.5px solid #eee; display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; }
+.hist-item .hname { font-weight: 500; }
+.hist-item .hmeta { color: #888; margin-top: 1px; }
+.help-btn { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #bbb; background: transparent; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
+.help-btn:hover { background: #f0f0f0; border-color: #999; }
+.help-modal-body { font-size: 14px; color: #333; line-height: 1.75; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto; margin-bottom: 16px; }
+.img-zoom-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 500; display: none; align-items: center; justify-content: center; cursor: zoom-out; }
+.img-zoom-overlay.show { display: flex; }
+.img-zoom-overlay img { max-width: 92vw; max-height: 88vh; border-radius: 6px; object-fit: contain; box-shadow: 0 4px 32px rgba(0,0,0,0.5); }
+.img-thumb.zoomable { cursor: zoom-in; transition: opacity 0.1s; }
+.img-thumb.zoomable:hover { opacity: 0.85; }
+</style>
+
+<div class="app-header">
+  <div style="display:flex;align-items:center;gap:8px">
+    <h1>秋葉注</h1>
+    <button class="help-btn" onclick="showHelpModal()" title="説明を見る">?</button>
+  </div>
+  <div class="header-right">
+    <span class="mode-pill" id="mode-pill" onclick="toggleMode()">部員モード</span>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" id="tab-quick" onclick="switchTab('quick')">クイック追加</div>
+  <div class="tab" id="tab-custom" onclick="switchTab('custom')">詳細追加</div>
+  <div class="tab" id="tab-list" onclick="switchTab('list')">注文一覧 <span id="count-badge"></span></div>
+  <div class="tab" id="tab-history" onclick="switchTab('history')">履歴</div>
+  <div class="tab" id="tab-admin" style="display:none" onclick="switchTab('admin')">管理</div>
+</div>
+
+<div id="view-quick" class="view active">
+  <div id="preset-display"></div>
+</div>
+
+<div id="view-custom" class="view">
+  <div class="card">
+    <div class="form-row"><label>品名 *</label><input id="c-name" type="text" placeholder="例: NE555P (DIPパッケージ)"></div>
+    <div class="form-row" style="display:flex;gap:8px">
+      <div style="flex:1"><label>数量</label><input id="c-qty" type="number" value="1" min="1"></div>
+      <div style="flex:1"><label>単位</label><select id="c-unit"><option>個</option><option>本</option><option>枚</option><option>m</option><option>袋</option><option>セット</option></select></div>
+    </div>
+    <div class="form-row"><label>参考URL（任意）</label><input id="c-url" type="url" placeholder="https://akizukidenshi.com/..."></div>
+    <div class="form-row"><label>備考・スペック</label><textarea id="c-note" placeholder="例: 秋月の50本入り袋"></textarea></div>
+    <div class="form-row">
+      <label>参考画像（任意）</label>
+      <div class="upload-area" onclick="document.getElementById('c-file').click()">タップして画像を追加</div>
+      <input id="c-file" type="file" accept="image/*" multiple style="display:none" onchange="handleFiles(this)">
+      <div class="img-preview" id="c-preview"></div>
+    </div>
+    <div class="form-row"><label>注文者名</label><input id="c-person" type="text" placeholder="名前または制作名"></div>
+    <button class="btn-primary" onclick="addCustomItem()">注文リストに追加</button>
+  </div>
+</div>
+
+<div id="view-list" class="view">
+  <div class="summary-bar">
+    <div class="sum-item"><div class="num" id="sum-total">0</div><div class="lbl">合計</div></div>
+    <div class="sum-item"><div class="num" id="sum-pending" style="color:#a16207">0</div><div class="lbl">未購入</div></div>
+    <div class="sum-item"><div class="num" id="sum-bought" style="color:#166534">0</div><div class="lbl">購入済</div></div>
+    <div class="sum-item"><div class="num" id="sum-unavail" style="color:#991b1b">0</div><div class="lbl">入手不可</div></div>
+  </div>
+  <div class="filter-row">
+    <div class="filter-pill active" onclick="setFilter('all',this)">すべて</div>
+    <div class="filter-pill" onclick="setFilter('pending',this)">未購入</div>
+    <div class="filter-pill" onclick="setFilter('bought',this)">購入済</div>
+    <div class="filter-pill" onclick="setFilter('unavail',this)">入手不可</div>
+  </div>
+  <div id="order-list"></div>
+  <div id="buyer-complete-btn" style="display:none;margin-top:12px">
+    <button class="btn-primary" style="background:#16a34a;border:none;color:#fff" onclick="showCompleteModal()">秋葉原での買い出し完了 — 結果を履歴に保存する</button>
+  </div>
+</div>
+
+<div id="view-history" class="view">
+  <div id="history-list"></div>
+</div>
+
+<div id="view-admin" class="view">
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:14px;font-weight:500;margin-bottom:12px">説明文の編集</div>
+    <div class="form-row">
+      <label>?ボタンで表示される説明文</label>
+      <textarea id="help-text-input" style="min-height:120px;font-size:13px;border:0.5px solid #ddd;border-radius:6px;background:#f9f9f9;color:#1a1a1a;padding:8px 10px;width:100%;resize:vertical" placeholder="例：&#10;秋葉注の使い方&#10;&#10;1. クイック追加タブから部品を選んで数量を入力し「追加する」を押してください。&#10;2. 注文一覧タブで内容を確認できます。"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveHelpText()">保存</button>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:500;margin-bottom:12px">プリセット編集</div>
+    <div id="preset-cat-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div id="preset-editor"></div>
+    <button class="btn-primary" onclick="savePresets()" style="margin-top:8px">保存</button>
+  </div>
+</div>
+
+<!-- 説明モーダル -->
+<div class="modal-overlay" id="help-modal">
+  <div class="modal">
+    <h3>説明</h3>
+    <div class="help-modal-body" id="help-modal-body"></div>
+    <div class="modal-btns">
+      <button onclick="hideHelpModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 画像拡大オーバーレイ -->
+<div class="img-zoom-overlay" id="img-zoom-overlay" onclick="hideZoom()">
+  <img id="img-zoom-target" src="">
+</div>
+
+<div class="modal-overlay" id="complete-modal">
+  <div class="modal">
+    <h3>購入完了</h3>
+    <p>現在の注文一覧を履歴に保存し、リセットします。よろしいですか？</p>
+    <div class="modal-btns">
+      <button onclick="hideCompleteModal()">キャンセル</button>
+      <button class="danger" onclick="completeAndReset()">完了・リセット</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="mode-modal">
+  <div class="modal">
+    <h3>モード切り替え</h3>
+    <p>あなたの役割を選んでください。</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+      <button onclick="setMode('member')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #ddd;background:#f9f9f9;cursor:pointer;text-align:left">
+        <span style="font-size:22px">📋</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1a1a1a">部員モード</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">部品を注文リストに追加する</div>
+        </div>
+      </button>
+      <button onclick="setMode('buyer')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #93c5fd;background:#dbeafe;cursor:pointer;text-align:left">
+        <span style="font-size:22px">🛒</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1d4ed8">購入者モード</div>
+          <div style="font-size:12px;color:#3b82f6;margin-top:2px">秋葉原で買い物をする</div>
+        </div>
+      </button>
+      <button onclick="setMode('admin')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #fde68a;background:#fef9c3;cursor:pointer;text-align:left">
+        <span style="font-size:22px">⚙️</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#a16207">管理者モード</div>
+          <div style="font-size:12px;color:#ca8a04;margin-top:2px">プリセットや設定を管理する</div>
+        </div>
+      </button>
+    </div>
+    <button onclick="hideModeModal()" style="width:100%;padding:9px;border-radius:8px;font-size:13px;cursor:pointer;border:0.5px solid #ccc;background:#f5f5f5;color:#1a1a1a">キャンセル</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 一部購入モーダル -->
+<div class="modal-overlay" id="partial-modal">
+  <div class="modal">
+    <h3>一部購入</h3>
+    <p id="partial-modal-desc" style="font-size:13px;color:#666;margin-bottom:4px"></p>
+    <div class="partial-input-row">
+      <button onclick="changePartialQty(-1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid #ddd;background:#f5f5f5;font-size:20px;cursor:pointer">−</button>
+      <input type="number" id="partial-qty-input" min="1" value="1">
+      <button onclick="changePartialQty(1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid #ddd;background:#f5f5f5;font-size:20px;cursor:pointer">＋</button>
+    </div>
+    <p style="font-size:12px;color:#aaa;text-align:center;margin-bottom:14px">購入できた数を入力してください</p>
+    <div class="modal-btns">
+      <button onclick="hidePartialModal()">キャンセル</button>
+      <button style="background:#fed7aa;color:#9a3412;border-color:transparent;font-weight:600" onclick="confirmPartial()">確定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Firebase初期化完了を待ってから起動
+function waitForFirebase(cb) {
+  if (window._fb) { cb(); }
+  else { setTimeout(() => waitForFirebase(cb), 50); }
+}
+
+const DEFAULT_PRESETS = {
+  passive: {
+    label: '受動部品',
+    items: [
+      {name:'1kΩ 抵抗', unit:'本', icon:'≈', url:'https://akizukidenshi.com/catalog/g/g109948/'},
+      {name:'10kΩ 抵抗', unit:'本', icon:'≈', url:'https://akizukidenshi.com/catalog/g/g109944/'},
+      {name:'100Ω 抵抗', unit:'本', icon:'≈', url:'https://akizukidenshi.com/catalog/g/g109951/'},
+      {name:'100kΩ 抵抗', unit:'本', icon:'≈', url:'https://akizukidenshi.com/catalog/g/g109945/'},
+      {name:'0.1μF セラコン', unit:'個', icon:'⊟', url:'https://akizukidenshi.com/catalog/g/g102151/'},
+      {name:'10μF 電解C', unit:'個', icon:'⊟', url:'https://akizukidenshi.com/catalog/g/g100098/'},
+      {name:'1N4148', unit:'個', icon:'▷', url:'https://akizukidenshi.com/catalog/g/g100941/'},
+      {name:'LED 赤', unit:'個', icon:'◉', url:'https://akizukidenshi.com/catalog/g/g111577/'},
+      {name:'LED 緑', unit:'個', icon:'◉', url:'https://akizukidenshi.com/catalog/g/g111578/'},
+    ]
+  },
+  active: {
+    label: '能動部品・IC',
+    items: [
+      {name:'ICソケット 8pin', unit:'個', icon:'□', url:'https://akizukidenshi.com/catalog/g/g106786/'},
+      {name:'ICソケット 14pin', unit:'個', icon:'□', url:'https://akizukidenshi.com/catalog/g/g106787/'},
+      {name:'ICソケット 16pin', unit:'個', icon:'□', url:'https://akizukidenshi.com/catalog/g/g106788/'},
+      {name:'ICソケット 28pin', unit:'個', icon:'□', url:'https://akizukidenshi.com/catalog/g/g106789/'},
+      {name:'74HC04', unit:'個', icon:'IC', url:'https://akizukidenshi.com/catalog/g/g100166/'},
+      {name:'NE555', unit:'個', icon:'IC', url:'https://akizukidenshi.com/catalog/g/g107972/'},
+    ]
+  },
+  board: {
+    label: '基板・配線',
+    items: [
+      {name:'ユニバ基板 小', unit:'枚', icon:'⊞', url:'https://akizukidenshi.com/catalog/g/g100517/'},
+      {name:'ユニバ基板 中', unit:'枚', icon:'⊞', url:'https://akizukidenshi.com/catalog/g/g100518/'},
+      {name:'ユニバ基板 大', unit:'枚', icon:'⊞', url:'https://akizukidenshi.com/catalog/g/g100519/'},
+      {name:'配線材 赤', unit:'m', icon:'~', url:''},
+      {name:'配線材 黒', unit:'m', icon:'~', url:''},
+      {name:'配線材 各色', unit:'m', icon:'~', url:''},
+      {name:'収縮チューブ', unit:'袋', icon:'|', url:''},
+    ]
+  },
+  connector: {
+    label: 'コネクタ',
+    items: [
+      {name:'ピンヘッダ 1×40', unit:'本', icon:'|||', url:'https://akizukidenshi.com/catalog/g/g101832/'},
+      {name:'ピンヘッダ 2×20', unit:'本', icon:'|||', url:'https://akizukidenshi.com/catalog/g/g100020/'},
+      {name:'ピンソケット 1×40', unit:'本', icon:'⊟', url:'https://akizukidenshi.com/catalog/g/g100263/'},
+      {name:'XH コネクタ 2P', unit:'袋', icon:'⊢', url:''},
+      {name:'XH コネクタ 3P', unit:'袋', icon:'⊢', url:''},
+      {name:'JST PH 2P', unit:'袋', icon:'⊢', url:''},
+    ]
+  },
+  tool: {
+    label: '工具・消耗品',
+    items: [
+      {name:'はんだ 250g', unit:'本', icon:'∿', url:''},
+      {name:'フラックス', unit:'個', icon:'◫', url:''},
+      {name:'吸いとり線', unit:'個', icon:'◫', url:''},
+      {name:'マスキングテープ', unit:'個', icon:'○', url:''},
+    ]
+  }
+};
+
+let presets = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
+let orders = [];
+let history = [];
+let qtys = {};
+let pendingImages = [];
+let currentFilter = 'all';
+let mode = 'member';
+let editingCat = Object.keys(presets)[0];
+let helpText = '';
+
+// ── Firebase同期 ──────────────────────────────────────
+function fbRef(path) { return window._fb.ref(window._fb.db, path); }
+
+function fbSyncOrders() {
+  window._fb.onValue(fbRef('orders'), snap => {
+    const val = snap.val();
+    orders = val ? Object.values(val) : [];
+    updateCountBadge();
+    renderOrders();
+  });
+}
+
+function fbSyncHistory() {
+  window._fb.onValue(fbRef('history'), snap => {
+    const val = snap.val();
+    history = val ? Object.values(val).sort((a,b) => b.ts - a.ts) : [];
+    renderHistory();
+  });
+}
+
+function fbSyncPresets() {
+  window._fb.onValue(fbRef('presets'), snap => {
+    const val = snap.val();
+    if (val) {
+      presets = val;
+      editingCat = Object.keys(presets)[0];
+      renderPresetDisplay();
+    }
+  });
+}
+
+function fbAddOrder(order) {
+  const newRef = window._fb.push(fbRef('orders'));
+  order.id = newRef.key;
+  window._fb.set(newRef, order);
+  return order;
+}
+
+function fbUpdateOrder(id, changes) {
+  window._fb.update(fbRef('orders/' + id), changes);
+}
+
+function fbRemoveOrder(id) {
+  window._fb.remove(fbRef('orders/' + id));
+}
+
+function fbSaveHistory(session) {
+  const newRef = window._fb.push(fbRef('history'));
+  session.ts = Date.now();
+  window._fb.set(newRef, session);
+}
+
+function fbClearOrders() {
+  window._fb.set(fbRef('orders'), null);
+}
+
+function fbSavePresets() {
+  window._fb.set(fbRef('presets'), presets);
+}
+function fbSaveHelpText(text) {
+  window._fb.set(fbRef('helpText'), text);
+}
+function fbSyncHelpText() {
+  window._fb.onValue(fbRef('helpText'), snap => {
+    helpText = snap.val() || '';
+    const el = document.getElementById('help-text-input');
+    if (el) el.value = helpText;
+  });
+}
+// ────────────────────────────────────────────────────────
+
+function renderPresetDisplay() {
+  const container = document.getElementById('preset-display');
+  container.innerHTML = '';
+  Object.entries(presets).forEach(([catKey, cat]) => {
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = cat.label;
+    container.appendChild(label);
+    const grid = document.createElement('div');
+    grid.className = 'quick-grid';
+    cat.items.forEach((item, i) => {
+      const key = catKey + '_' + i;
+      if (qtys[key] === undefined) qtys[key] = 0;
+      const card = document.createElement('div');
+      card.className = 'quick-card';
+      card.innerHTML = `
+        <div class="icon">${item.icon || '●'}</div>
+        <div class="qname">${item.name}</div>
+        <div class="qty-ctrl">
+          <button onclick="changeQty(event,'${key}',-1)">−</button>
+          <span id="qty-${key}">${qtys[key]}</span>
+          <button onclick="changeQty(event,'${key}',1)">+</button>
+        </div>
+        <button class="add-btn" onclick="addQuickItem('${catKey}',${i},'${key}')">追加する</button>
+      `;
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
+  });
+}
+
+function changeQty(e, key, delta) {
+  e.stopPropagation();
+  qtys[key] = Math.max(0, (qtys[key] || 0) + delta);
+  const el = document.getElementById('qty-' + key);
+  if (el) el.textContent = qtys[key];
+}
+
+function addQuickItem(catKey, idx, key) {
+  const item = presets[catKey].items[idx];
+  const qty = qtys[key] || 0;
+  if (qty === 0) { showToast('数量を1以上にしてください'); return; }
+  const order = {
+    id: '',
+    name: item.name,
+    qty,
+    unit: item.unit,
+    note: '',
+    url: item.url || '',
+    images: [],
+    person: '未記入',
+    status: 'pending',
+    ts: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'})
+  };
+  fbAddOrder(order);
+  qtys[key] = 0;
+  const el = document.getElementById('qty-' + key);
+  if (el) el.textContent = 0;
+  showToast(item.name + ' を追加しました');
+}
+
+function addCustomItem() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { showToast('品名を入力してください'); return; }
+  const order = {
+    id: '',
+    name,
+    qty: parseInt(document.getElementById('c-qty').value) || 1,
+    unit: document.getElementById('c-unit').value,
+    url: document.getElementById('c-url').value.trim(),
+    note: document.getElementById('c-note').value.trim(),
+    images: [...pendingImages],
+    person: document.getElementById('c-person').value.trim() || '未記入',
+    status: 'pending',
+    ts: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'})
+  };
+  fbAddOrder(order);
+  ['c-name','c-note','c-person','c-url'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('c-qty').value = '1';
+  document.getElementById('c-preview').innerHTML = '';
+  pendingImages = [];
+  switchTab('list');
+  showToast('追加しました');
+}
+
+function handleFiles(input) {
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { pendingImages.push(e.target.result); renderPreview(); };
+    reader.readAsDataURL(file);
+  });
+}
+function renderPreview() {
+  document.getElementById('c-preview').innerHTML = pendingImages.map((src, i) =>
+    `<div class="img-thumb-wrap"><img src="${src}" class="img-thumb"><button class="del" onclick="removeImg(${i})">×</button></div>`
+  ).join('');
+}
+function removeImg(i) { pendingImages.splice(i,1); renderPreview(); }
+
+function renderOrders() {
+  const list = document.getElementById('order-list');
+  const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state">注文はまだありません</div>';
+  } else {
+    const isBuyer = mode === 'buyer';
+    const isAdmin = mode === 'admin';
+    list.innerHTML = filtered.map(o => `
+      <div class="order-item ${o.status === 'bought' ? 'done' : ''}">
+        <div class="info">
+          <div class="name">${o.name}</div>
+          <div class="meta">${(() => {
+            if (o.status === 'partial') {
+              const remaining = o.qty - (o.boughtQty || 0);
+              return `${remaining}${o.unit}`;
+            }
+            return `${o.qty}${o.unit}`;
+          })()} · ${o.person} · ${o.ts}</div>
+          ${o.note ? `<div class="note">${o.note}</div>` : ''}
+          ${o.url ? `<div class="url-link"><a href="${o.url}" target="_blank">${o.url}</a></div>` : ''}
+          ${o.images && o.images.length ? `<div class="img-preview" style="margin-top:6px">${o.images.map(s=>`<img src="${s}" class="img-thumb zoomable" onclick="showZoom(this.src)">`).join('')}</div>` : ''}
+          ${(isBuyer || isAdmin) ? `<div class="mark-row">
+            <button class="mark-btn ${o.status==='bought'?'bought':''}" onclick="setStatus('${o.id}','bought')">✓ 購入済</button>
+            <button class="mark-btn ${o.status==='partial'?'partial-active':''}" onclick="showPartialModal('${o.id}')">△ 一部購入</button>
+            <button class="mark-btn ${o.status==='unavail'?'unavail':''}" onclick="setStatus('${o.id}','unavail')">✕ 入手不可</button>
+            <button class="mark-btn ${o.status==='pending'?'pending-active':''}" onclick="setStatus('${o.id}','pending')">⟳ 未購入</button>
+          </div>` : ''}
+        </div>
+        <div class="actions">
+          <span class="status-badge ${o.status==='bought'?'s-bought':o.status==='unavail'?'s-unavail':'s-pending'}">
+            ${o.status==='bought'?'購入済':o.status==='unavail'?'前回入手不可':'未購入'}
+          </span>
+          ${(isAdmin || mode==='member') ? `<button class="icon-btn" onclick="removeOrder('${o.id}')">削除</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('buyer-complete-btn').style.display = mode === 'buyer' ? 'block' : 'none';
+  updateSummary();
+}
+
+function setStatus(id, status) {
+  fbUpdateOrder(id, { status, boughtQty: null });
+}
+
+let partialTargetId = null;
+function showPartialModal(id) {
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  partialTargetId = id;
+  document.getElementById('partial-modal-desc').textContent = `「${o.name}」 注文数: ${o.qty}${o.unit}`;
+  const input = document.getElementById('partial-qty-input');
+  input.value = o.boughtQty || 1;
+  input.max = o.qty - 1;
+  document.getElementById('partial-modal').classList.add('show');
+}
+function hidePartialModal() {
+  document.getElementById('partial-modal').classList.remove('show');
+  partialTargetId = null;
+}
+function changePartialQty(delta) {
+  const input = document.getElementById('partial-qty-input');
+  const o = orders.find(x => x.id === partialTargetId);
+  if (!o) return;
+  input.value = Math.max(1, Math.min(o.qty - 1, parseInt(input.value || 1) + delta));
+}
+function confirmPartial() {
+  const o = orders.find(x => x.id === partialTargetId);
+  if (!o) return;
+  const boughtQty = parseInt(document.getElementById('partial-qty-input').value) || 1;
+  fbUpdateOrder(partialTargetId, { status: 'partial', boughtQty });
+  hidePartialModal();
+  showToast(`${boughtQty}${o.unit}購入済として記録しました`);
+}
+function removeOrder(id) {
+  fbRemoveOrder(id);
+}
+function updateCountBadge() {
+  document.getElementById('count-badge').textContent = orders.length ? `(${orders.length})` : '';
+}
+function updateSummary() {
+  document.getElementById('sum-total').textContent = orders.length;
+  document.getElementById('sum-pending').textContent = orders.filter(o=>o.status==='pending').length;
+  document.getElementById('sum-bought').textContent = orders.filter(o=>o.status==='bought').length;
+  document.getElementById('sum-unavail').textContent = orders.filter(o=>o.status==='unavail').length;
+}
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderOrders();
+}
+
+function showCompleteModal() { document.getElementById('complete-modal').classList.add('show'); }
+function hideCompleteModal() { document.getElementById('complete-modal').classList.remove('show'); }
+function completeAndReset() {
+  if (orders.length === 0) { hideCompleteModal(); showToast('注文がありません'); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric'}) + ' ' + now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  fbSaveHistory({ date: dateStr, orders: JSON.parse(JSON.stringify(orders)) });
+
+  // 購入済のみ削除、未購入・一部購入・入手不可は残す
+  const toDelete = orders.filter(o => o.status === 'bought');
+  toDelete.forEach(o => fbRemoveOrder(o.id));
+
+  qtys = {};
+  hideCompleteModal();
+  renderPresetDisplay();
+
+  // 履歴が10件を超えたらリセット
+  const newCount = history.length + 1;
+  if (newCount >= 10) {
+    setTimeout(() => {
+      window._fb.set(window._fb.ref(window._fb.db, 'history'), null);
+      showToast('購入完了！履歴が10件に達したためリセットしました');
+    }, 500);
+  } else {
+    const remaining = orders.filter(o => o.status !== 'bought').length;
+    const msg = remaining > 0
+      ? `購入完了！${remaining}件を注文一覧に残しました（${newCount}/10）`
+      : `購入完了！履歴に保存しました（${newCount}/10）`;
+    showToast(msg);
+  }
+
+  switchTab('history');
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (history.length === 0) { list.innerHTML = '<div class="empty-state">履歴はまだありません</div>'; return; }
+  list.innerHTML = history.map((session, si) => {
+    const bought = session.orders.filter(o=>o.status==='bought').length;
+    const unavail = session.orders.filter(o=>o.status==='unavail').length;
+    const total = session.orders.length;
+    return `<div class="hist-session">
+      <div class="hist-session-header" onclick="toggleHistSession(${si})">
+        <div class="date">${session.date}</div>
+        <div class="stats">${total}件 / 購入済${bought} / 入手不可${unavail}</div>
+      </div>
+      <div id="hist-body-${si}">
+        ${session.orders.map(o => `
+          <div class="hist-item">
+            <div>
+              <div class="hname">${o.name}</div>
+              <div class="hmeta">${o.qty}${o.unit} · ${o.person}${o.url ? ` · <a href="${o.url}" style="color:var(--color-text-info)" target="_blank">URL</a>` : ''}</div>
+            </div>
+            <span class="status-badge ${o.status==='bought'?'s-bought':o.status==='unavail'?'s-unavail':'s-pending'}" style="margin-top:2px">
+              ${o.status==='bought'?'購入済':o.status==='unavail'?'入手不可':'未購入'}
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistSession(si) {
+  const body = document.getElementById('hist-body-' + si);
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+function toggleMode() { document.getElementById('mode-modal').classList.add('show'); }
+function hideModeModal() { document.getElementById('mode-modal').classList.remove('show'); }
+function setMode(m) {
+  mode = m;
+  const pill = document.getElementById('mode-pill');
+
+  // タブの表示・非表示を制御
+  // 全タブを一旦取得: quick, custom, list, history, admin
+  const tabQuick   = document.getElementById('tab-quick');
+  const tabCustom  = document.getElementById('tab-custom');
+  const tabList    = document.getElementById('tab-list');
+  const tabHistory = document.getElementById('tab-history');
+  const tabAdmin   = document.getElementById('tab-admin');
+
+  if (m === 'member') {
+    pill.textContent = '部員モード'; pill.className = 'mode-pill';
+    tabQuick.style.display = '';
+    tabCustom.style.display = '';
+    tabList.style.display = '';
+    tabHistory.style.display = '';
+    tabAdmin.style.display = 'none';
+    switchTab('quick');
+  } else if (m === 'buyer') {
+    pill.textContent = '購入者モード'; pill.className = 'mode-pill buyer';
+    tabQuick.style.display = 'none';
+    tabCustom.style.display = 'none';
+    tabList.style.display = '';
+    tabHistory.style.display = 'none';
+    tabAdmin.style.display = 'none';
+    switchTab('list');
+  } else if (m === 'admin') {
+    pill.textContent = '管理者モード'; pill.className = 'mode-pill admin';
+    tabQuick.style.display = '';
+    tabCustom.style.display = 'none';
+    tabList.style.display = '';
+    tabHistory.style.display = 'none';
+    tabAdmin.style.display = '';
+    switchTab('list');
+  }
+
+  hideModeModal();
+  renderOrders();
+  showToast(pill.textContent + 'に切り替えました');
+}
+
+function switchTab(id) {
+  const ids = ['quick','custom','list','history','admin'];
+  ids.forEach(tid => {
+    const tab = document.getElementById('tab-' + tid);
+    if (tab) tab.classList.toggle('active', tid === id);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if (id === 'list') renderOrders();
+  if (id === 'history') renderHistory();
+  if (id === 'admin') renderPresetEditor();
+}
+
+const ICON_OPTIONS = ['≈','⊟','▷','◉','□','IC','|||','⊢','∿','◫','○','⊞','~','|','●','★','▲','♦','⚡','🔌','🔧','🔩','📦','💡'];
+
+function renderPresetEditor() {
+  const catTabs = document.getElementById('preset-cat-tabs');
+  catTabs.innerHTML = Object.entries(presets).map(([k,v]) =>
+    `<div class="filter-pill ${k===editingCat?'active':''}" onclick="selectEditCat('${k}')">${v.label}</div>`
+  ).join('');
+  const editor = document.getElementById('preset-editor');
+  const cat = presets[editingCat];
+
+  // カテゴリ名
+  const catLabelRow = document.createElement('div');
+  catLabelRow.style.cssText = 'font-size:12px;color:#666;margin-bottom:8px;display:flex;align-items:center;gap:6px';
+  catLabelRow.innerHTML = 'カテゴリ名: ';
+  const catLabelInput = document.createElement('input');
+  catLabelInput.value = cat.label;
+  catLabelInput.style.cssText = 'padding:4px 8px;font-size:12px;border:0.5px solid #ccc;border-radius:6px;background:#f5f5f5;color:#111;width:160px';
+  catLabelInput.addEventListener('input', e => { presets[editingCat].label = e.target.value; });
+  catLabelRow.appendChild(catLabelInput);
+  editor.innerHTML = '';
+  editor.appendChild(catLabelRow);
+
+  cat.items.forEach((item, i) => {
+    // 品名・単位・削除行
+    const row1 = document.createElement('div');
+    row1.className = 'preset-editor-row';
+
+    const nameInput = document.createElement('input');
+    nameInput.value = item.name;
+    nameInput.placeholder = '品名';
+    nameInput.addEventListener('input', e => { presets[editingCat].items[i].name = e.target.value; });
+
+    const unitSelect = document.createElement('select');
+    ['個','本','枚','m','袋','セット'].forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      if (item.unit === u) opt.selected = true;
+      unitSelect.appendChild(opt);
+    });
+    unitSelect.addEventListener('change', e => { presets[editingCat].items[i].unit = e.target.value; });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn'; delBtn.textContent = '削除';
+    delBtn.addEventListener('click', () => deletePresetItem(i));
+
+    row1.appendChild(nameInput);
+    row1.appendChild(unitSelect);
+    row1.appendChild(delBtn);
+
+    // アイコン選択行
+    const row1b = document.createElement('div');
+    row1b.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;';
+    const iconLabel = document.createElement('span');
+    iconLabel.style.cssText = 'font-size:11px;color:#888;white-space:nowrap';
+    iconLabel.textContent = 'アイコン:';
+    const iconPreview = document.createElement('span');
+    iconPreview.style.cssText = 'font-size:18px;min-width:24px;text-align:center';
+    iconPreview.textContent = item.icon || '●';
+    const iconSelect = document.createElement('select');
+    iconSelect.style.cssText = 'padding:3px 6px;font-size:13px;border:0.5px solid #ccc;border-radius:6px;background:#f5f5f5;color:#111';
+    ICON_OPTIONS.forEach(ic => {
+      const opt = document.createElement('option');
+      opt.value = ic; opt.textContent = ic;
+      if ((item.icon || '●') === ic) opt.selected = true;
+      iconSelect.appendChild(opt);
+    });
+    iconSelect.addEventListener('change', e => {
+      presets[editingCat].items[i].icon = e.target.value;
+      iconPreview.textContent = e.target.value;
+    });
+    row1b.appendChild(iconLabel);
+    row1b.appendChild(iconPreview);
+    row1b.appendChild(iconSelect);
+
+    // URL行
+    const row2 = document.createElement('div');
+    row2.className = 'preset-editor-row';
+    row2.style.marginTop = '-4px';
+    const urlInput = document.createElement('input');
+    urlInput.value = item.url || '';
+    urlInput.placeholder = 'URL（省略可）';
+    urlInput.style.fontSize = '11px';
+    urlInput.addEventListener('input', e => { presets[editingCat].items[i].url = e.target.value; });
+    row2.appendChild(urlInput);
+
+    editor.appendChild(row1);
+    editor.appendChild(row1b);
+    editor.appendChild(row2);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-preset-btn';
+  addBtn.textContent = '+ 項目を追加';
+  addBtn.addEventListener('click', addPresetItem);
+  editor.appendChild(addBtn);
+}
+function selectEditCat(k) { editingCat = k; renderPresetEditor(); }
+function deletePresetItem(i) { presets[editingCat].items.splice(i,1); renderPresetEditor(); }
+function addPresetItem() {
+  presets[editingCat].items.push({name:'新しい部品', unit:'個', icon:'●', url:''});
+  renderPresetEditor();
+}
+function savePresets() {
+  fbSavePresets();
+  renderPresetDisplay();
+  renderPresetEditor();
+  showToast('プリセットを保存しました');
+}
+
+function showZoom(src) {
+  document.getElementById('img-zoom-target').src = src;
+  document.getElementById('img-zoom-overlay').classList.add('show');
+}
+function hideZoom() {
+  document.getElementById('img-zoom-overlay').classList.remove('show');
+}
+
+function showHelpModal() {
+  const body = document.getElementById('help-modal-body');
+  body.textContent = helpText || '説明はまだ設定されていません。\n管理者モードの「説明文の編集」から設定できます。';
+  document.getElementById('help-modal').classList.add('show');
+}
+function hideHelpModal() {
+  document.getElementById('help-modal').classList.remove('show');
+}
+function saveHelpText() {
+  const text = document.getElementById('help-text-input').value;
+  helpText = text;
+  fbSaveHelpText(text);
+  showToast('説明文を保存しました');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// アプリ起動（Firebase準備完了後）
+waitForFirebase(() => {
+  fbSyncOrders();
+  fbSyncHistory();
+  fbSyncPresets();
+  fbSyncHelpText();
+  renderPresetDisplay();
+  updateCountBadge();
+  renderOrders();
+  renderHistory();
+});
+</script>
+</body>
+</html>

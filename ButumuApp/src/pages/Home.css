@@ -1,0 +1,36 @@
+@media (min-width: 768px) {
+  .home-page {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .home-page .card {
+    margin-bottom: 0;
+  }
+
+  .home-page .card:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.res-date {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.res-person {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.res-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}

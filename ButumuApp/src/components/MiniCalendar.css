@@ -1,0 +1,125 @@
+.mini-calendar {
+  background: var(--panel-bg);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 8px 8px;
+}
+
+.mc-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.mc-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mc-nav {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.mc-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+
+.mc-weekday {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.mc-weekday.sun {
+  color: #dc2626;
+}
+
+.mc-weekday.sat {
+  color: #2563eb;
+}
+
+.mc-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.mc-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  color: var(--text);
+  min-height: 0;
+}
+
+.compact .mc-cell {
+  padding: 2px 0;
+}
+
+.mc-cell.empty {
+  cursor: default;
+}
+
+.interactive .mc-cell:not(.empty) {
+  cursor: pointer;
+}
+
+.interactive .mc-cell:not(.empty):hover {
+  background: var(--hover-bg);
+}
+
+.mc-daynum {
+  font-size: 11px;
+}
+
+.mc-cell.sun .mc-daynum {
+  color: #dc2626;
+}
+
+.mc-cell.sat .mc-daynum {
+  color: #2563eb;
+}
+
+.mc-cell.today .mc-daynum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+
+.mc-cell.selected {
+  background: var(--accent-bg);
+}
+
+.mc-dots {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+
+.mc-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}

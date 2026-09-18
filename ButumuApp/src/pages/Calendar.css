@@ -1,0 +1,70 @@
+@media (min-width: 768px) {
+  .calendar-page {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+.tag-legend {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.event-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-top: 0.5px solid var(--border);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.event-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.event-title {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-range {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tag-select {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-option {
+  padding: 6px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  border: 1.5px solid var(--tag-color);
+  background: transparent;
+  color: var(--tag-color);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tag-option.active {
+  background: var(--tag-color);
+  color: #fff;
+}
