@@ -8,12 +8,13 @@
     align-items: start;
   }
 
-  .home-page .card {
+  .home-page > .card {
     margin-bottom: 0;
   }
 
-  .home-page .card:nth-child(1),
-  .home-page .card:nth-child(2) {
+  /* 責任者カードとカレンダーは横幅いっぱい、その下の2枚を2列に並べる */
+  .home-page > .card:first-child,
+  .home-page > .calendar-section {
     grid-column: 1 / -1;
   }
 }
@@ -103,13 +104,31 @@
 
 /* モーダル内 */
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+.duty-next-head {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
 .duty-picks {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: -4px 0 10px;
 }
-
 .duty-pick {
   padding: 5px 11px;
   border-radius: 99px;
@@ -119,82 +138,8 @@
   font-size: 12px;
   cursor: pointer;
 }
-
 .duty-pick.active {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
-}
-
-.member-list {
-  border: 0.5px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.member-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-top: 0.5px solid var(--border);
-}
-
-.member-row:first-child {
-  border-top: none;
-}
-
-.member-no {
-  width: 20px;
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.member-name {
-  flex: 1;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.member-btn {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  border: 0.5px solid var(--border);
-  background: var(--hover-bg);
-  color: var(--text);
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.member-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.member-btn.danger {
-  color: var(--danger);
-}
-
-.duty-preview {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--border);
-}
-
-.duty-preview-head {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.duty-next-head {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
 }

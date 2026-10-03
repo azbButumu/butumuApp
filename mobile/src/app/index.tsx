@@ -1,21 +1,13 @@
 // Web 版 src/pages/Home.jsx の移植
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 
-import { expandEventsByDate } from '@shared/calendarEvents'
 import { addDays, formatDateJa, todayStr } from '@shared/date'
-import {
-  cycleLabel,
-  dutiesFrom,
-  normalizeRotation,
-  overridesByDate,
-  resolveDuty,
-} from '@shared/duty'
-import { removeItem, setItem, setValue, subscribeList, subscribeValue } from '@shared/firebaseData'
+import { dutiesFrom, normalizeRotation, overridesByDate, resolveDuty } from '@shared/duty'
+import { removeItem, setItem, subscribeList, subscribeValue } from '@shared/firebaseData'
 
-import { DateField } from '@/components/DateField'
-import { DayEvent, MiniCalendar } from '@/components/MiniCalendar'
+import { CalendarSection } from '@/components/CalendarSection'
 import {
   AppModal,
   Btn,
@@ -38,7 +30,6 @@ export default function HomeScreen() {
 
   const [orders, setOrders] = useState<any[]>([])
   const [reservations, setReservations] = useState<any[]>([])
-  const [events, setEvents] = useState<any[]>([])
   const [rotationRaw, setRotationRaw] = useState<any>(null)
   const [overrides, setOverrides] = useState<any[]>([])
   const [today, setToday] = useState(todayStr)
@@ -47,16 +38,10 @@ export default function HomeScreen() {
   const [changePerson, setChangePerson] = useState('')
   const [changeNote, setChangeNote] = useState('')
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [draftMembers, setDraftMembers] = useState<string[]>([])
-  const [draftStart, setDraftStart] = useState('')
-  const [newMember, setNewMember] = useState('')
-
   useEffect(() => {
     const unsubs = [
       subscribeList('orders', setOrders),
       subscribeList('printerReservations', setReservations),
-      subscribeList('calendarEvents', setEvents),
       subscribeList('dutyOverrides', setOverrides),
       subscribeValue('dutyRotation', setRotationRaw),
     ]
@@ -78,14 +63,6 @@ export default function HomeScreen() {
   const upcoming = useMemo(
     () => dutiesFrom(addDays(today, 1), rotation, overrideMap, 5),
     [today, rotation, overrideMap],
-  )
-  const eventsByDate = useMemo(
-    () => expandEventsByDate(events) as Record<string, DayEvent[]>,
-    [events],
-  )
-  const getDuty = useCallback(
-    (dateStr: string) => resolveDuty(dateStr, rotation, overrideMap),
-    [rotation, overrideMap],
   )
 
   const orderStats = useMemo(
@@ -130,47 +107,12 @@ export default function HomeScreen() {
     setChangeOpen(false)
   }
 
-  function openSettings() {
-    setDraftMembers(rotation.members)
-    setDraftStart(rotation.startDate || today)
-    setNewMember('')
-    setSettingsOpen(true)
-  }
-
-  function addMember() {
-    const name = newMember.trim()
-    if (!name) return
-    setDraftMembers((list) => [...list, name])
-    setNewMember('')
-  }
-
-  function moveMember(index: number, delta: number) {
-    setDraftMembers((list) => {
-      const target = index + delta
-      if (target < 0 || target >= list.length) return list
-      const next = [...list]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next
-    })
-  }
-
-  function submitSettings() {
-    setValue('dutyRotation', { members: draftMembers, startDate: draftStart })
-    setSettingsOpen(false)
-  }
-
-  const draftPreview = useMemo(
-    () => dutiesFrom(today, { members: draftMembers, startDate: draftStart }, {}, 7),
-    [today, draftMembers, draftStart],
-  )
-
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={styles.page}>
       <Card>
-        <RowBetween>
+        <View style={{ marginBottom: 10 }}>
           <CardTitle>今日の責任者</CardTitle>
-          <CardLink label="ローテ設定" onPress={openSettings} />
-        </RowBetween>
+        </View>
 
         {duty.person ? (
           <>
@@ -200,7 +142,7 @@ export default function HomeScreen() {
           </>
         ) : (
           <EmptyState>
-            ローテーションが未設定です。「ローテ設定」から部員と開始日を登録してください。
+            ローテーションが未設定です。設定タブから部員と開始日を登録してください。
           </EmptyState>
         )}
 
@@ -224,9 +166,7 @@ export default function HomeScreen() {
         )}
       </Card>
 
-      <Card>
-        <MiniCalendar eventsByDate={eventsByDate} getDuty={getDuty} />
-      </Card>
+      <CalendarSection />
 
       <Card>
         <RowBetween>
@@ -301,83 +241,6 @@ export default function HomeScreen() {
         </Field>
       </AppModal>
 
-      <AppModal
-        visible={settingsOpen}
-        title="責任者ローテーション"
-        onClose={() => setSettingsOpen(false)}
-        footer={
-          <>
-            <Btn label="キャンセル" onPress={() => setSettingsOpen(false)} />
-            <Btn label="保存" variant="primary" block onPress={submitSettings} />
-          </>
-        }>
-        <ModalSub>
-          開始日から日替わりで、下の順番に1人ずつ交代します。
-          {draftMembers.length > 0
-            ? ` 現在 ${draftMembers.length}人 → ${cycleLabel(draftMembers)}`
-            : ''}
-        </ModalSub>
-
-        <Field label="1番目の人が担当する日 *">
-          <DateField value={draftStart} onChange={setDraftStart} />
-        </Field>
-
-        <Field label={`順番(${draftMembers.length}人)`}>
-          {draftMembers.length === 0 ? (
-            <EmptyState>まだ登録がありません</EmptyState>
-          ) : (
-            <View style={[styles.memberList, { borderColor: c.border }]}>
-              {draftMembers.map((m, i) => (
-                <View key={`${m}-${i}`} style={[styles.memberRow, { borderTopColor: c.border }]}>
-                  <Text style={{ width: 20, fontSize: 11, color: c.textMuted, textAlign: 'center' }}>
-                    {i + 1}
-                  </Text>
-                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, color: c.text }}>
-                    {m}
-                  </Text>
-                  <MemberBtn label="▲" disabled={i === 0} onPress={() => moveMember(i, -1)} />
-                  <MemberBtn
-                    label="▼"
-                    disabled={i === draftMembers.length - 1}
-                    onPress={() => moveMember(i, 1)}
-                  />
-                  <MemberBtn
-                    label="×"
-                    onPress={() => setDraftMembers((l) => l.filter((_, j) => j !== i))}
-                  />
-                </View>
-              ))}
-            </View>
-          )}
-        </Field>
-
-        <View style={styles.addRow}>
-          <View style={{ flex: 1 }}>
-            <Input
-              value={newMember}
-              onChangeText={setNewMember}
-              placeholder="部員を追加"
-              onSubmitEditing={addMember}
-              returnKeyType="done"
-            />
-          </View>
-          <Btn label="追加" onPress={addMember} />
-        </View>
-
-        {draftPreview.length > 0 && (
-          <View style={[styles.dutyNext, { borderTopColor: c.border }]}>
-            <Text style={[styles.sectionLabel, { color: c.textMuted }]}>
-              この設定での割り当て(今日から)
-            </Text>
-            {draftPreview.map((d: any) => (
-              <View key={d.date} style={styles.nextRow}>
-                <Text style={{ fontSize: 12, color: c.textMuted }}>{formatDateJa(d.date)}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: c.text }}>{d.person}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </AppModal>
     </ScrollView>
   )
 }
@@ -392,24 +255,6 @@ function Stat({ value, label, color }: { value: number; label: string; color: st
   )
 }
 
-function MemberBtn({
-  label,
-  onPress,
-  disabled,
-}: {
-  label: string
-  onPress: () => void
-  disabled?: boolean
-}) {
-  return (
-    <Btn
-      label={label}
-      onPress={onPress}
-      disabled={disabled}
-      style={{ width: 28, paddingHorizontal: 0, paddingVertical: 5 }}
-    />
-  )
-}
 
 const styles = StyleSheet.create({
   page: { padding: 14, paddingBottom: 40 },
@@ -434,14 +279,4 @@ const styles = StyleSheet.create({
   },
   statGrid: { flexDirection: 'row', justifyContent: 'space-around' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  memberList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 6, overflow: 'hidden' },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 10 },
 })

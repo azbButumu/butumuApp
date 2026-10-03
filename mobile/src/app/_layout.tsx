@@ -9,7 +9,7 @@ const TABS = [
   { name: 'akiba', label: '秋葉注', title: '秋葉注', icon: '🛒' },
   { name: 'printer', label: '3Dプリンター', title: '3Dプリンター予約', icon: '🖨️' },
   { name: 'library', label: 'ライブラリ', title: 'ライブラリ', icon: '📁' },
-  { name: 'calendar', label: 'カレンダー', title: 'カレンダー', icon: '📅' },
+  { name: 'settings', label: '設定', title: '設定', icon: '⚙️' },
 ] as const
 
 export default function RootLayout() {

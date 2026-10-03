@@ -1,28 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import MiniCalendar from '../components/MiniCalendar'
+import { useEffect, useMemo, useState } from 'react'
+import CalendarSection from '../components/CalendarSection'
 import Modal from '../components/Modal'
 import {
   subscribeList,
   subscribeValue,
   setItem,
-  setValue,
   removeItem,
 } from '../../shared/firebaseData'
-import { expandEventsByDate } from '../../shared/calendarEvents'
 import { todayStr, addDays, formatDateJa } from '../../shared/date'
-import {
-  normalizeRotation,
-  overridesByDate,
-  resolveDuty,
-  dutiesFrom,
-  cycleLabel,
-} from '../../shared/duty'
+import { normalizeRotation, overridesByDate, resolveDuty, dutiesFrom } from '../../shared/duty'
 import './Home.css'
 
 function Home({ onNavigate }) {
   const [orders, setOrders] = useState([])
   const [reservations, setReservations] = useState([])
-  const [events, setEvents] = useState([])
   const [rotationRaw, setRotationRaw] = useState(null)
   const [overrides, setOverrides] = useState([])
   const [today, setToday] = useState(todayStr)
@@ -31,16 +22,10 @@ function Home({ onNavigate }) {
   const [changePerson, setChangePerson] = useState('')
   const [changeNote, setChangeNote] = useState('')
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [draftMembers, setDraftMembers] = useState([])
-  const [draftStart, setDraftStart] = useState('')
-  const [newMember, setNewMember] = useState('')
-
   useEffect(() => {
     const unsubs = [
       subscribeList('orders', setOrders),
       subscribeList('printerReservations', setReservations),
-      subscribeList('calendarEvents', setEvents),
       subscribeList('dutyOverrides', setOverrides),
       subscribeValue('dutyRotation', setRotationRaw),
     ]
@@ -61,11 +46,6 @@ function Home({ onNavigate }) {
     [today, rotation, overrideMap],
   )
 
-  const eventsByDate = useMemo(() => expandEventsByDate(events), [events])
-  const getDuty = useCallback(
-    (dateStr) => resolveDuty(dateStr, rotation, overrideMap),
-    [rotation, overrideMap],
-  )
 
   const orderStats = useMemo(() => {
     return {
@@ -106,56 +86,10 @@ function Home({ onNavigate }) {
     setChangeOpen(false)
   }
 
-  function openSettings() {
-    setDraftMembers(rotation.members)
-    setDraftStart(rotation.startDate || today)
-    setNewMember('')
-    setSettingsOpen(true)
-  }
-
-  function addMember() {
-    const name = newMember.trim()
-    if (!name) return
-    setDraftMembers((list) => [...list, name])
-    setNewMember('')
-  }
-
-  function removeMember(index) {
-    setDraftMembers((list) => list.filter((_, i) => i !== index))
-  }
-
-  function moveMember(index, delta) {
-    const target = index + delta
-    setDraftMembers((list) => {
-      if (target < 0 || target >= list.length) return list
-      const next = [...list]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next
-    })
-  }
-
-  function submitSettings() {
-    setValue('dutyRotation', {
-      members: draftMembers,
-      startDate: draftStart,
-    })
-    setSettingsOpen(false)
-  }
-
-  const draftPreview = useMemo(
-    () => dutiesFrom(today, { members: draftMembers, startDate: draftStart }, {}, 7),
-    [today, draftMembers, draftStart],
-  )
-
   return (
     <div className="home-page">
       <div className="card duty-card">
-        <div className="row-between">
-          <h2>今日の責任者</h2>
-          <button type="button" className="card-link" onClick={openSettings}>
-            ローテ設定
-          </button>
-        </div>
+        <h2>今日の責任者</h2>
 
         {duty.person ? (
           <>
@@ -173,7 +107,7 @@ function Home({ onNavigate }) {
           </>
         ) : (
           <div className="empty-state">
-            ローテーションが未設定です。「ローテ設定」から部員と開始日を登録してください。
+            ローテーションが未設定です。設定タブから部員と開始日を登録してください。
           </div>
         )}
 
@@ -196,9 +130,7 @@ function Home({ onNavigate }) {
         )}
       </div>
 
-      <div className="card">
-        <MiniCalendar eventsByDate={eventsByDate} getDuty={getDuty} />
-      </div>
+      <CalendarSection />
 
       <div className="card">
         <div className="row-between">
@@ -313,101 +245,6 @@ function Home({ onNavigate }) {
         </Modal>
       )}
 
-      {settingsOpen && (
-        <Modal
-          title="責任者ローテーション"
-          onClose={() => setSettingsOpen(false)}
-          footer={
-            <>
-              <button type="button" className="btn" onClick={() => setSettingsOpen(false)}>
-                キャンセル
-              </button>
-              <button type="button" className="btn btn-primary btn-block" onClick={submitSettings}>
-                保存
-              </button>
-            </>
-          }
-        >
-          <p className="modal-sub">
-            開始日から日替わりで、下の順番に1人ずつ交代します。
-            {draftMembers.length > 0 && ` 現在 ${draftMembers.length}人 → ${cycleLabel(draftMembers)}`}
-          </p>
-          <div className="field">
-            <label>1番目の人が担当する日 *</label>
-            <input type="date" value={draftStart} onChange={(e) => setDraftStart(e.target.value)} />
-          </div>
-
-          <div className="field">
-            <label>順番({draftMembers.length}人)</label>
-            {draftMembers.length === 0 ? (
-              <div className="empty-state">まだ登録がありません</div>
-            ) : (
-              <div className="member-list">
-                {draftMembers.map((m, i) => (
-                  <div className="member-row" key={`${m}-${i}`}>
-                    <span className="member-no">{i + 1}</span>
-                    <span className="member-name">{m}</span>
-                    <button
-                      type="button"
-                      className="member-btn"
-                      disabled={i === 0}
-                      onClick={() => moveMember(i, -1)}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      className="member-btn"
-                      disabled={i === draftMembers.length - 1}
-                      onClick={() => moveMember(i, 1)}
-                    >
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      className="member-btn danger"
-                      onClick={() => removeMember(i)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="field-row">
-            <div className="field">
-              <input
-                value={newMember}
-                onChange={(e) => setNewMember(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addMember()
-                  }
-                }}
-                placeholder="部員を追加"
-              />
-            </div>
-            <button type="button" className="btn" onClick={addMember}>
-              追加
-            </button>
-          </div>
-
-          {draftPreview.length > 0 && (
-            <div className="duty-preview">
-              <div className="duty-preview-head">この設定での割り当て(今日から)</div>
-              {draftPreview.map((d) => (
-                <div className="duty-next-row" key={d.date}>
-                  <span className="duty-next-date">{formatDateJa(d.date)}</span>
-                  <span className="duty-next-person">{d.person}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Modal>
-      )}
     </div>
   )
 }

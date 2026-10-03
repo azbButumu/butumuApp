@@ -1,0 +1,89 @@
+/* 設定ページ(責任者ローテーション) */
+
+@media (min-width: 768px) {
+  .settings-page {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+}
+
+.settings-sub {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.settings-save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.settings-hint.saved {
+  color: var(--success);
+}
+
+.member-list {
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 0.5px solid var(--border);
+}
+.member-row:first-child {
+  border-top: none;
+}
+.member-no {
+  width: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.member-name {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.member-btn {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 0.5px solid var(--border);
+  background: var(--hover-bg);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.member-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.member-btn.danger {
+  color: var(--danger);
+}
+.duty-preview {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--border);
+}
+.duty-preview-head {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}

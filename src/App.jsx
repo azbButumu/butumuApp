@@ -5,7 +5,7 @@ import Home from './pages/Home'
 import AkibaChu from './pages/AkibaChu'
 import Printer3D from './pages/Printer3D'
 import Library from './pages/Library'
-import Calendar from './pages/Calendar'
+import Settings from './pages/Settings'
 import './App.css'
 
 const TITLES = {
@@ -13,7 +13,7 @@ const TITLES = {
   akiba: '秋葉注',
   printer: '3Dプリンター予約',
   library: 'ライブラリ',
-  calendar: 'カレンダー',
+  settings: '設定',
 }
 
 function App() {
@@ -32,7 +32,7 @@ function App() {
           {tab === 'akiba' && <AkibaChu />}
           {tab === 'printer' && <Printer3D />}
           {tab === 'library' && <Library />}
-          {tab === 'calendar' && <Calendar />}
+          {tab === 'settings' && <Settings />}
         </main>
       </div>
       <BottomNav active={tab} onChange={setTab} />

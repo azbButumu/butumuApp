@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import MiniCalendar from '../components/MiniCalendar'
-import Modal from '../components/Modal'
+import MiniCalendar from './MiniCalendar'
+import Modal from './Modal'
 import {
   subscribeList,
   subscribeValue,
@@ -12,7 +12,7 @@ import { expandEventsByDate, isOccurrenceSkipped } from '../../shared/calendarEv
 import { TAGS, TAG_COLORS } from '../../shared/tags'
 import { todayStr, formatDateJa, weekdayJaOf } from '../../shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '../../shared/duty'
-import './Calendar.css'
+import './CalendarSection.css'
 
 const EMPTY_FORM = {
   title: '',
@@ -24,7 +24,7 @@ const EMPTY_FORM = {
   repeatUntil: '',
 }
 
-function CalendarPage() {
+function CalendarSection() {
   const [events, setEvents] = useState([])
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const [formOpen, setFormOpen] = useState(false)
@@ -133,7 +133,7 @@ function CalendarPage() {
   const occurrenceSkipped = editing ? isOccurrenceSkipped(editing, editingStart) : false
 
   return (
-    <div className="calendar-page">
+    <div className="calendar-section">
       <div className="card">
         <MiniCalendar
           interactive
@@ -307,4 +307,4 @@ function CalendarPage() {
   )
 }
 
-export default CalendarPage
+export default CalendarSection

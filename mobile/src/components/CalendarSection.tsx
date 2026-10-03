@@ -1,6 +1,6 @@
-// Web 版 src/pages/Calendar.jsx の移植
+// Web 版 src/components/CalendarSection.jsx の移植。ホームから使う。
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { expandEventsByDate, isOccurrenceSkipped } from '@shared/calendarEvents'
 import { formatDateJa, todayStr, weekdayJaOf } from '@shared/date'
@@ -8,8 +8,8 @@ import { normalizeRotation, overridesByDate, resolveDuty } from '@shared/duty'
 import { addItem, removeItem, subscribeList, subscribeValue, updateItem } from '@shared/firebaseData'
 import { TAG_COLORS, TAGS } from '@shared/tags'
 
-import { DateField } from '@/components/DateField'
-import { DayEvent, MiniCalendar } from '@/components/MiniCalendar'
+import { DateField } from './DateField'
+import { DayEvent, MiniCalendar } from './MiniCalendar'
 import {
   AppModal,
   Btn,
@@ -22,7 +22,7 @@ import {
   ModalSub,
   RowBetween,
   TagChip,
-} from '@/components/ui'
+} from './ui'
 import { useTheme } from '@/theme'
 
 const EMPTY_FORM = {
@@ -35,7 +35,7 @@ const EMPTY_FORM = {
   repeatUntil: '',
 }
 
-export default function CalendarScreen() {
+export function CalendarSection() {
   const c = useTheme()
   const [events, setEvents] = useState<any[]>([])
   const [selectedDate, setSelectedDate] = useState(todayStr())
@@ -149,7 +149,7 @@ export default function CalendarScreen() {
   const occurrenceSkipped = editing ? isOccurrenceSkipped(editing, editingStart) : false
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={styles.page}>
+    <View>
       <Card>
         <MiniCalendar
           interactive
@@ -334,12 +334,11 @@ export default function CalendarScreen() {
           />
         </Field>
       </AppModal>
-    </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 14, paddingBottom: 40 },
   legend: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 12 },
   eventRow: {
     flexDirection: 'row',
