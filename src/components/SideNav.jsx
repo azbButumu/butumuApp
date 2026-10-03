@@ -4,7 +4,7 @@ import './SideNav.css'
 function SideNav({ active, onChange }) {
   return (
     <nav className="side-nav">
-      <div className="side-nav-brand">部員アプリ</div>
+      <div className="side-nav-brand">物無App</div>
       <div className="side-nav-list">
         {TABS.map((tab) => (
           <button
