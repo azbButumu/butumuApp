@@ -26,3 +26,14 @@ export function formatDateJa(dateStr) {
   const dt = new Date(y, m - 1, d)
   return `${m}月${d}日(${WEEKDAYS_JA[dt.getDay()]})`
 }
+
+export function diffDays(fromStr, toStr) {
+  const [y1, m1, d1] = fromStr.split('-').map(Number)
+  const [y2, m2, d2] = toStr.split('-').map(Number)
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000)
+}
+
+export function weekdayJaOf(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return WEEKDAYS_JA[new Date(y, m - 1, d).getDay()]
+}

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { toDateStr, todayStr, weekdayJa } from '../lib/date'
 import './MiniCalendar.css'
 
+const MAX_VISIBLE_EVENTS = 3
+
 function buildMonthGrid(year, month) {
   const first = new Date(year, month, 1)
   const startOffset = first.getDay()
@@ -13,7 +15,13 @@ function buildMonthGrid(year, month) {
   return cells
 }
 
-function MiniCalendar({ interactive = false, eventsByDate = {}, selectedDate, onSelectDate }) {
+function MiniCalendar({
+  interactive = false,
+  eventsByDate = {},
+  selectedDate,
+  onSelectDate,
+  getDuty,
+}) {
   const today = todayStr()
   const [viewDate, setViewDate] = useState(() => {
     const base = selectedDate ? new Date(selectedDate) : new Date()
@@ -60,6 +68,8 @@ function MiniCalendar({ interactive = false, eventsByDate = {}, selectedDate, on
           const isSelected = interactive && dateStr === selectedDate
           const dow = cellDate.getDay()
           const dayEvents = eventsByDate[dateStr] || []
+          const duty = getDuty ? getDuty(dateStr) : null
+          const hidden = dayEvents.length - MAX_VISIBLE_EVENTS
           return (
             <button
               type="button"
@@ -68,12 +78,31 @@ function MiniCalendar({ interactive = false, eventsByDate = {}, selectedDate, on
               onClick={() => interactive && onSelectDate && onSelectDate(dateStr)}
               disabled={!interactive}
             >
-              <span className="mc-daynum">{cellDate.getDate()}</span>
+              <span className="mc-cell-head">
+                <span className="mc-daynum">{cellDate.getDate()}</span>
+                {duty?.person && (
+                  <span
+                    className={`mc-duty ${duty.isOverride ? 'changed' : ''}`}
+                    title={duty.isOverride ? `${duty.person}(当日変更)` : duty.person}
+                  >
+                    {duty.person}
+                  </span>
+                )}
+              </span>
+
               {dayEvents.length > 0 && (
-                <span className="mc-dots">
-                  {dayEvents.slice(0, 4).map((ev, di) => (
-                    <span key={di} className="mc-dot" style={{ background: ev.color }} />
+                <span className="mc-events">
+                  {dayEvents.slice(0, MAX_VISIBLE_EVENTS).map((ev, di) => (
+                    <span
+                      key={di}
+                      className={`mc-event ${ev.skipped ? 'skipped' : ''}`}
+                      style={{ '--ev-color': ev.color }}
+                      title={ev.event.title}
+                    >
+                      {ev.event.title}
+                    </span>
                   ))}
+                  {hidden > 0 && <span className="mc-more">+{hidden}件</span>}
                 </span>
               )}
             </button>

@@ -23,3 +23,15 @@ export function updateItem(path, id, changes) {
 export function removeItem(path, id) {
   return remove(ref(db, `${path}/${id}`))
 }
+
+export function subscribeValue(path, callback) {
+  return onValue(ref(db, path), (snap) => callback(snap.val()))
+}
+
+export function setItem(path, id, data) {
+  return set(ref(db, `${path}/${id}`), data)
+}
+
+export function setValue(path, data) {
+  return set(ref(db, path), data)
+}
