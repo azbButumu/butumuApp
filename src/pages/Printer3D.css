@@ -154,3 +154,44 @@
   color: var(--text-muted);
   margin: -4px 0 12px;
 }
+
+.slot-project {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.project-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-option {
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 0.5px solid var(--border);
+  background: var(--hover-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.project-option.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}

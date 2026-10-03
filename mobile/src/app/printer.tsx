@@ -3,9 +3,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { addDays, formatDateJa, todayStr } from '@shared/date'
-import { addItem, removeItem, subscribeList, updateItem } from '@shared/firebaseData'
+import {
+  addItem,
+  removeItem,
+  subscribeList,
+  subscribeValue,
+  updateItem,
+} from '@shared/firebaseData'
+import { getAuthInstance } from '@shared/auth'
+import { memberLabel } from '@shared/members'
+import { projectsOfUser } from '@shared/projects'
 
-import { AppModal, Btn, Field, Input, ModalSub } from '@/components/ui'
+import { AppModal, Btn, Chip, Field, Input, ModalSub } from '@/components/ui'
 import { useTheme } from '@/theme'
 
 const START_HOUR = 8
@@ -35,8 +44,27 @@ export default function PrinterScreen() {
   const [editing, setEditing] = useState<any>(null)
   const [person, setPerson] = useState('')
   const [note, setNote] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [projects, setProjects] = useState<any[]>([])
+  const [me, setMe] = useState<any>(null)
 
-  useEffect(() => subscribeList('printerReservations', setReservations), [])
+  const uid = getAuthInstance().currentUser?.uid
+
+  useEffect(() => {
+    const unsubs = [
+      subscribeList('printerReservations', setReservations),
+      subscribeList('projects', setProjects),
+    ]
+    return () => unsubs.forEach((u) => u())
+  }, [])
+
+  useEffect(() => {
+    if (!uid) return
+    return subscribeValue(`members/${uid}`, setMe)
+  }, [uid])
+
+  // 予約できるのは自分が所属している制作だけ
+  const myProjects = useMemo(() => projectsOfUser(projects, uid), [projects, uid])
 
   const dayReservations = useMemo(
     () => reservations.filter((r) => r.date === date).sort((a, b) => a.start.localeCompare(b.start)),
@@ -63,6 +91,7 @@ export default function PrinterScreen() {
       setEditing(existing)
       setPerson(existing.person || '')
       setNote(existing.note || '')
+      setProjectId(existing.projectId || '')
       setFormOpen(true)
       return
     }
@@ -85,10 +114,13 @@ export default function PrinterScreen() {
 
   function submitForm() {
     if (!person.trim()) return
+    const project = myProjects.find((p: any) => p.id === projectId)
     if (editing) {
       updateItem('printerReservations', editing.id, {
         person: person.trim(),
         note: note.trim(),
+        projectId: projectId || '',
+        projectName: project ? project.name : '',
       })
     } else if (selection) {
       addItem('printerReservations', {
@@ -97,7 +129,10 @@ export default function PrinterScreen() {
         end: SLOTS[selection.end].end,
         person: person.trim(),
         note: note.trim(),
+        projectId: projectId || '',
+        projectName: project ? project.name : '',
         createdAt: Date.now(),
+        createdBy: uid || '',
       })
       resetSelection()
     }
@@ -169,9 +204,24 @@ export default function PrinterScreen() {
                 <View style={{ flex: 1 }}>
                   {owner ? (
                     <>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>
-                        {owner.person}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>
+                          {owner.person}
+                        </Text>
+                        {owner.projectName ? (
+                          <View
+                            style={{
+                              paddingVertical: 1,
+                              paddingHorizontal: 6,
+                              borderRadius: 99,
+                              backgroundColor: c.accentBg,
+                            }}>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: c.accent }}>
+                              {owner.projectName}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                       {owner.note ? (
                         <Text style={{ fontSize: 11, color: c.textMuted }}>{owner.note}</Text>
                       ) : null}
@@ -207,8 +257,9 @@ export default function PrinterScreen() {
             variant="primary"
             onPress={() => {
               setEditing(null)
-              setPerson('')
+              setPerson(memberLabel(me) === '不明' ? '' : memberLabel(me))
               setNote('')
+              setProjectId('')
               setFormOpen(true)
             }}
           />
@@ -236,6 +287,25 @@ export default function PrinterScreen() {
         </ModalSub>
         <Field label="名前 *">
           <Input value={person} onChangeText={setPerson} placeholder="名前または制作名" />
+        </Field>
+        <Field label="制作(任意)">
+          {myProjects.length === 0 ? (
+            <Text style={{ fontSize: 11, color: c.textMuted, lineHeight: 17 }}>
+              所属している制作がありません。設定タブの「制作グループ」から参加できます。
+            </Text>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <Chip label="個人" active={projectId === ''} onPress={() => setProjectId('')} />
+              {myProjects.map((p: any) => (
+                <Chip
+                  key={p.id}
+                  label={p.name}
+                  active={projectId === p.id}
+                  onPress={() => setProjectId(p.id)}
+                />
+              ))}
+            </View>
+          )}
         </Field>
         <Field label="メモ(任意)">
           <Input

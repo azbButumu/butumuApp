@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../components/Modal'
-import { subscribeList, addItem, updateItem, removeItem } from '../../shared/firebaseData'
+import {
+  subscribeList,
+  subscribeValue,
+  addItem,
+  updateItem,
+  removeItem,
+} from '../../shared/firebaseData'
+import { getAuthInstance } from '../../shared/auth'
+import { memberLabel } from '../../shared/members'
+import { projectsOfUser } from '../../shared/projects'
 import { todayStr, addDays, formatDateJa } from '../../shared/date'
 import './Printer3D.css'
 
@@ -30,8 +39,27 @@ function Printer3D() {
   const [editing, setEditing] = useState(null)
   const [person, setPerson] = useState('')
   const [note, setNote] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [projects, setProjects] = useState([])
+  const [me, setMe] = useState(null)
 
-  useEffect(() => subscribeList('printerReservations', setReservations), [])
+  const uid = getAuthInstance().currentUser?.uid
+
+  useEffect(() => {
+    const unsubs = [
+      subscribeList('printerReservations', setReservations),
+      subscribeList('projects', setProjects),
+    ]
+    return () => unsubs.forEach((u) => u())
+  }, [])
+
+  useEffect(() => {
+    if (!uid) return
+    return subscribeValue(`members/${uid}`, setMe)
+  }, [uid])
+
+  // 予約できるのは自分が所属している制作だけ
+  const myProjects = useMemo(() => projectsOfUser(projects, uid), [projects, uid])
 
   const dayReservations = useMemo(
     () => reservations.filter((r) => r.date === date).sort((a, b) => a.start.localeCompare(b.start)),
@@ -58,6 +86,7 @@ function Printer3D() {
       setEditing(existing)
       setPerson(existing.person || '')
       setNote(existing.note || '')
+      setProjectId(existing.projectId || '')
       setFormOpen(true)
       return
     }
@@ -82,8 +111,9 @@ function Printer3D() {
 
   function openNewReservationForm() {
     setEditing(null)
-    setPerson('')
+    setPerson(memberLabel(me) === '不明' ? '' : memberLabel(me))
     setNote('')
+    setProjectId('')
     setFormOpen(true)
   }
 
@@ -94,8 +124,14 @@ function Printer3D() {
 
   function submitForm() {
     if (!person.trim()) return
+    const project = myProjects.find((p) => p.id === projectId)
     if (editing) {
-      updateItem('printerReservations', editing.id, { person: person.trim(), note: note.trim() })
+      updateItem('printerReservations', editing.id, {
+        person: person.trim(),
+        note: note.trim(),
+        projectId: projectId || '',
+        projectName: project ? project.name : '',
+      })
     } else if (selection) {
       addItem('printerReservations', {
         date,
@@ -103,7 +139,10 @@ function Printer3D() {
         end: SLOTS[selection.end].end,
         person: person.trim(),
         note: note.trim(),
+        projectId: projectId || '',
+        projectName: project ? project.name : '',
         createdAt: Date.now(),
+        createdBy: uid || '',
       })
       resetSelection()
     }
@@ -149,7 +188,12 @@ function Printer3D() {
               <span className="slot-content">
                 {owner ? (
                   <>
-                    <span className="slot-person">{owner.person}</span>
+                    <span className="slot-person">
+                      {owner.person}
+                      {owner.projectName && (
+                        <span className="slot-project">{owner.projectName}</span>
+                      )}
+                    </span>
                     {owner.note && <span className="slot-note">{owner.note}</span>}
                   </>
                 ) : isSelected ? (
@@ -206,6 +250,34 @@ function Printer3D() {
           <div className="field">
             <label>名前 *</label>
             <input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="名前または制作名" />
+          </div>
+          <div className="field">
+            <label>制作(任意)</label>
+            {myProjects.length === 0 ? (
+              <p className="field-hint">
+                所属している制作がありません。設定タブの「制作グループ」から参加できます。
+              </p>
+            ) : (
+              <div className="project-select">
+                <button
+                  type="button"
+                  className={`project-option ${projectId === '' ? 'active' : ''}`}
+                  onClick={() => setProjectId('')}
+                >
+                  個人
+                </button>
+                {myProjects.map((p) => (
+                  <button
+                    type="button"
+                    key={p.id}
+                    className={`project-option ${projectId === p.id ? 'active' : ''}`}
+                    onClick={() => setProjectId(p.id)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="field">
             <label>メモ(任意)</label>
