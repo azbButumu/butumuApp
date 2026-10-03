@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { formatDateJa, todayStr } from '@shared/date'
 import { cycleLabel, dutiesFrom, normalizeRotation } from '@shared/duty'
+import { getAuthInstance, signOutUser } from '@shared/auth'
 import { setValue, subscribeValue } from '@shared/firebaseData'
 
 import { DateField } from '@/components/DateField'
@@ -63,6 +64,8 @@ export default function SettingsScreen() {
     setDirty(false)
     setSaved(true)
   }
+
+  const account = getAuthInstance().currentUser
 
   const preview = useMemo(
     () => dutiesFrom(today, { members, startDate }, {}, 7),
@@ -130,6 +133,15 @@ export default function SettingsScreen() {
           <Text style={[styles.hint, { color: c.textMuted }]}>未保存の変更があります</Text>
         )}
         {saved && <Text style={[styles.hint, { color: c.success }]}>保存しました</Text>}
+      </Card>
+
+      <Card>
+        <CardTitle>アカウント</CardTitle>
+        <Text style={[styles.sub, { color: c.textMuted }]}>
+          {account?.email || 'ログイン中'}
+          {account?.providerData?.[0]?.providerId === 'google.com' ? '(Google)' : ''}
+        </Text>
+        <Btn label="ログアウト" variant="danger" onPress={signOutUser} />
       </Card>
 
       {preview.length > 0 && (

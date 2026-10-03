@@ -1,0 +1,60 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "members": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists()",
+        ".validate": "newData.hasChildren(['code', 'joinedAt'])",
+        "code": {
+          ".validate": "newData.isString()"
+        },
+        "joinedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "email": {
+          ".validate": "newData.isString()"
+        },
+        "provider": {
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "history": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "presets": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "helpText": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "calendarEvents": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "printerReservations": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "dutyRotation": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "dutyOverrides": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

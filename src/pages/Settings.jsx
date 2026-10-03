@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { subscribeValue, setValue } from '../../shared/firebaseData'
 import { normalizeRotation, dutiesFrom, cycleLabel } from '../../shared/duty'
 import { todayStr, formatDateJa } from '../../shared/date'
+import { getAuthInstance, signOutUser } from '../../shared/auth'
 import './Settings.css'
 
 function Settings() {
@@ -65,6 +66,8 @@ function Settings() {
     () => dutiesFrom(today, { members, startDate }, {}, 7),
     [today, members, startDate],
   )
+
+  const account = getAuthInstance().currentUser
 
   return (
     <div className="settings-page">
@@ -149,6 +152,17 @@ function Settings() {
           {dirty && <span className="settings-hint">未保存の変更があります</span>}
           {saved && <span className="settings-hint saved">保存しました</span>}
         </div>
+      </div>
+
+      <div className="card">
+        <h2>アカウント</h2>
+        <p className="settings-sub">
+          {account?.email || 'ログイン中'}
+          {account?.providerData?.[0]?.providerId === 'google.com' && '(Google)'}
+        </p>
+        <button type="button" className="btn btn-danger btn-block" onClick={signOutUser}>
+          ログアウト
+        </button>
       </div>
 
       {preview.length > 0 && (

@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Tabs, ThemeProvider } from 'expo-router'
 import { Text, useColorScheme } from 'react-native'
 
+import { AuthGate } from '@/components/AuthGate'
 import { useTheme } from '@/theme'
 
 // Web 版 src/lib/tabs.js と同じ並び・ラベル・アイコン
@@ -18,7 +19,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Tabs
+      <AuthGate>
+        <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: c.panelBg },
           headerTitleStyle: { fontSize: 17, fontWeight: '600', color: c.text },
@@ -42,7 +44,8 @@ export default function RootLayout() {
             }}
           />
         ))}
-      </Tabs>
+        </Tabs>
+      </AuthGate>
     </ThemeProvider>
   )
 }

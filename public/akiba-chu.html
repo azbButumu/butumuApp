@@ -7,6 +7,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, onValue, remove, push, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBe_xxS7IZKde-UPc3Qrv9Ud4FXMI2HUlE",
@@ -20,11 +21,42 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  window._fb = { db, ref, set, onValue, remove, push, update };
+
+  // DB はログイン必須になったため、認証が確定してから window._fb を公開する。
+  // 親アプリ(部室アプリ)の iframe として開かれる場合は同一オリジンなので、
+  // 親でログイン済みのユーザーがそのまま引き継がれる。
+  const auth = getAuth(app);
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window._fb = { db, ref, set, onValue, remove, push, update };
+      document.documentElement.classList.remove('needs-login');
+    } else {
+      window._fb = null;
+      document.documentElement.classList.add('needs-login');
+    }
+  });
 </script>
 </head>
 <body>
+<div id="login-notice">このページを使うには部室アプリへのログインが必要です。</div>
 <style>
+html.needs-login #login-notice { display: block; }
+#login-notice {
+  display: none;
+  margin: 24px auto;
+  max-width: 420px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+}
+html.needs-login .app-header,
+html.needs-login .tabs,
+html.needs-login .view { display: none !important; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbf6da; color: #1a1a1a; min-height: 100vh; font-size: 14px; }
 html { background: #fbf6da; }
