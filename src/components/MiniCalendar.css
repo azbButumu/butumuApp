@@ -30,14 +30,17 @@
 .mc-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  /* gap が .mc-grid と違うと列幅がずれて曜日と日付が合わなくなる */
+  gap: 1px;
   margin-bottom: 2px;
 }
 
 .mc-weekday {
-  text-align: center;
+  /* 日付が左寄せなので、曜日もセルの padding に合わせて左寄せにする */
+  text-align: left;
   font-size: 10px;
   color: var(--text-muted);
-  padding: 2px 0;
+  padding: 2px 0 2px 4px;
 }
 
 .mc-weekday.sun {
