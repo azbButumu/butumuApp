@@ -2,20 +2,34 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "members": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.child('code').val() === 'ebarasoroku'",
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid && (!data.exists() ? newData.child('code').val() === 'ebarasoroku' : true)",
         ".validate": "newData.hasChildren(['code', 'joinedAt'])",
-        "code": { ".validate": "newData.val() === 'ebarasoroku'" },
-        "joinedAt": { ".validate": "newData.isNumber()" },
-        "email": { ".validate": "newData.isString()" },
-        "provider": { ".validate": "newData.isString()" },
-        "$other": { ".validate": false }
+        "code": {
+          ".validate": "newData.val() === 'ebarasoroku'"
+        },
+        "joinedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "email": {
+          ".validate": "newData.isString()"
+        },
+        "provider": {
+          ".validate": "newData.isString()"
+        },
+        "name": {
+          ".validate": "newData.isString()"
+        },
+        "grade": {
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
-
     "orders": {
       ".read": "auth != null && root.child('members').child(auth.uid).exists()",
       ".write": "auth != null && root.child('members').child(auth.uid).exists()"
@@ -45,6 +59,10 @@
       ".write": "auth != null && root.child('members').child(auth.uid).exists()"
     },
     "dutyOverrides": {
+      ".read": "auth != null && root.child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('members').child(auth.uid).exists()"
+    },
+    "projects": {
       ".read": "auth != null && root.child('members').child(auth.uid).exists()",
       ".write": "auth != null && root.child('members').child(auth.uid).exists()"
     }

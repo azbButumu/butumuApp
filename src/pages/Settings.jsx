@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { subscribeValue, setValue } from '../../shared/firebaseData'
+import { subscribeList, subscribeValue, setValue } from '../../shared/firebaseData'
 import { normalizeRotation, dutiesFrom, cycleLabel } from '../../shared/duty'
 import { todayStr, formatDateJa } from '../../shared/date'
-import { getAuthInstance, signOutUser } from '../../shared/auth'
+import { getAuthInstance, signOutUser, updateProfile } from '../../shared/auth'
+import { GRADES, memberLabel, sortMembers } from '../../shared/members'
+import ProjectsCard from '../components/ProjectsCard'
 import './Settings.css'
 
 function Settings() {
@@ -13,7 +15,19 @@ function Settings() {
   const [dirty, setDirty] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => subscribeValue('dutyRotation', setRotationRaw), [])
+  const [accounts, setAccounts] = useState([])
+  const [projects, setProjects] = useState([])
+  const [editName, setEditName] = useState(null)
+  const [editGrade, setEditGrade] = useState('')
+
+  useEffect(() => {
+    const unsubs = [
+      subscribeValue('dutyRotation', setRotationRaw),
+      subscribeList('members', setAccounts),
+      subscribeList('projects', setProjects),
+    ]
+    return () => unsubs.forEach((u) => u())
+  }, [])
 
   const today = todayStr()
   const rotation = useMemo(() => normalizeRotation(rotationRaw), [rotationRaw])
@@ -68,6 +82,19 @@ function Settings() {
   )
 
   const account = getAuthInstance().currentUser
+  const uid = account?.uid
+  const sortedAccounts = useMemo(() => sortMembers(accounts), [accounts])
+  const me = accounts.find((m) => m.id === uid)
+
+  function startEdit() {
+    setEditName(me?.name || '')
+    setEditGrade(me?.grade || '')
+  }
+
+  function saveProfile() {
+    updateProfile(uid, { name: editName, grade: editGrade })
+    setEditName(null)
+  }
 
   return (
     <div className="settings-page">
@@ -154,15 +181,85 @@ function Settings() {
         </div>
       </div>
 
+      <ProjectsCard projects={projects} members={accounts} uid={uid} />
+
       <div className="card">
-        <h2>アカウント</h2>
+        <h2>部員一覧({sortedAccounts.length}人)</h2>
+        {sortedAccounts.length === 0 ? (
+          <div className="empty-state">まだ誰も登録していません</div>
+        ) : (
+          sortedAccounts.map((m) => (
+            <div className="account-row" key={m.id}>
+              <span className="account-grade">{m.grade || '—'}</span>
+              <span className="account-name">
+                {memberLabel(m)}
+                {m.id === uid && <span className="account-you">あなた</span>}
+              </span>
+              <span className="account-mail">{m.email}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="card">
+        <h2>自分のアカウント</h2>
         <p className="settings-sub">
           {account?.email || 'ログイン中'}
           {account?.providerData?.[0]?.providerId === 'google.com' && '(Google)'}
         </p>
-        <button type="button" className="btn btn-danger btn-block" onClick={signOutUser}>
-          ログアウト
-        </button>
+
+        {editName === null ? (
+          <>
+            <div className="account-row">
+              <span className="account-grade">{me?.grade || '—'}</span>
+              <span className="account-name">{memberLabel(me)}</span>
+            </div>
+            <button type="button" className="btn btn-block" onClick={startEdit}>
+              本名・学年を変更
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="field">
+              <label>本名</label>
+              <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>学年</label>
+              <div className="grade-row">
+                {GRADES.map((g) => (
+                  <button
+                    type="button"
+                    key={g}
+                    className={`grade-chip ${editGrade === g ? 'active' : ''}`}
+                    onClick={() => setEditGrade(g)}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="field-row">
+              <button type="button" className="btn btn-block" onClick={() => setEditName(null)}>
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={saveProfile}
+                disabled={!editName.trim() || !editGrade}
+              >
+                保存
+              </button>
+            </div>
+          </>
+        )}
+
+        <div style={{ marginTop: 12 }}>
+          <button type="button" className="btn btn-danger btn-block" onClick={signOutUser}>
+            ログアウト
+          </button>
+        </div>
       </div>
 
       {preview.length > 0 && (

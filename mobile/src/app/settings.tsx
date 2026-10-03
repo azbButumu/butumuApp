@@ -4,10 +4,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { formatDateJa, todayStr } from '@shared/date'
 import { cycleLabel, dutiesFrom, normalizeRotation } from '@shared/duty'
-import { getAuthInstance, signOutUser } from '@shared/auth'
-import { setValue, subscribeValue } from '@shared/firebaseData'
+import { getAuthInstance, signOutUser, updateProfile } from '@shared/auth'
+import { memberLabel, sortMembers } from '@shared/members'
+import { setValue, subscribeList, subscribeValue } from '@shared/firebaseData'
 
 import { DateField } from '@/components/DateField'
+import { GradePicker } from '@/components/AuthGate'
+import { ProjectsCard } from '@/components/ProjectsCard'
 import { Btn, Card, CardTitle, EmptyState, Field, Input } from '@/components/ui'
 import { useTheme } from '@/theme'
 
@@ -20,7 +23,19 @@ export default function SettingsScreen() {
   const [dirty, setDirty] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => subscribeValue('dutyRotation', setRotationRaw), [])
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [editName, setEditName] = useState<string | null>(null)
+  const [editGrade, setEditGrade] = useState('')
+
+  useEffect(() => {
+    const unsubs = [
+      subscribeValue('dutyRotation', setRotationRaw),
+      subscribeList('members', setAccounts),
+      subscribeList('projects', setProjects),
+    ]
+    return () => unsubs.forEach((u) => u())
+  }, [])
 
   const today = todayStr()
   const rotation = useMemo(() => normalizeRotation(rotationRaw), [rotationRaw])
@@ -66,6 +81,20 @@ export default function SettingsScreen() {
   }
 
   const account = getAuthInstance().currentUser
+  const uid = account?.uid
+  const sortedAccounts = useMemo(() => sortMembers(accounts), [accounts])
+  const me = accounts.find((m) => m.id === uid)
+
+  function startEdit() {
+    setEditName(me?.name || '')
+    setEditGrade(me?.grade || '')
+  }
+
+  function saveProfile() {
+    if (!uid) return
+    updateProfile(uid, { name: editName || '', grade: editGrade })
+    setEditName(null)
+  }
 
   const preview = useMemo(
     () => dutiesFrom(today, { members, startDate }, {}, 7),
@@ -135,13 +164,73 @@ export default function SettingsScreen() {
         {saved && <Text style={[styles.hint, { color: c.success }]}>保存しました</Text>}
       </Card>
 
+      <ProjectsCard projects={projects} members={accounts} uid={uid} />
+
       <Card>
-        <CardTitle>アカウント</CardTitle>
+        <CardTitle>部員一覧({sortedAccounts.length}人)</CardTitle>
+        {sortedAccounts.length === 0 ? (
+          <EmptyState>まだ誰も登録していません</EmptyState>
+        ) : (
+          sortedAccounts.map((m: any) => (
+            <View key={m.id} style={[styles.accountRow, { borderTopColor: c.border }]}>
+              <Text
+                style={[styles.gradeTag, { backgroundColor: c.hoverBg, color: c.textMuted }]}>
+                {m.grade || '—'}
+              </Text>
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, color: c.text }}>
+                {memberLabel(m)}
+                {m.id === uid ? '(あなた)' : ''}
+              </Text>
+              <Text numberOfLines={1} style={{ fontSize: 11, color: c.textMuted, maxWidth: 140 }}>
+                {m.email}
+              </Text>
+            </View>
+          ))
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>自分のアカウント</CardTitle>
         <Text style={[styles.sub, { color: c.textMuted }]}>
           {account?.email || 'ログイン中'}
           {account?.providerData?.[0]?.providerId === 'google.com' ? '(Google)' : ''}
         </Text>
-        <Btn label="ログアウト" variant="danger" onPress={signOutUser} />
+
+        {editName === null ? (
+          <>
+            <View style={[styles.accountRow, { borderTopColor: c.border }]}>
+              <Text
+                style={[styles.gradeTag, { backgroundColor: c.hoverBg, color: c.textMuted }]}>
+                {me?.grade || '—'}
+              </Text>
+              <Text style={{ flex: 1, fontSize: 13, color: c.text }}>{memberLabel(me)}</Text>
+            </View>
+            <Btn label="本名・学年を変更" onPress={startEdit} />
+          </>
+        ) : (
+          <>
+            <Field label="本名">
+              <Input value={editName} onChangeText={setEditName} />
+            </Field>
+            <Field label="学年">
+              <GradePicker value={editGrade} onChange={setEditGrade} />
+            </Field>
+            <View style={styles.editRow}>
+              <Btn label="キャンセル" block onPress={() => setEditName(null)} />
+              <Btn
+                label="保存"
+                variant="primary"
+                block
+                disabled={!editName.trim() || !editGrade}
+                onPress={saveProfile}
+              />
+            </View>
+          </>
+        )}
+
+        <View style={{ marginTop: 12 }}>
+          <Btn label="ログアウト" variant="danger" onPress={signOutUser} />
+        </View>
       </Card>
 
       {preview.length > 0 && (
@@ -192,5 +281,22 @@ const styles = StyleSheet.create({
   },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 10 },
   hint: { fontSize: 11, marginTop: 8, textAlign: 'center' },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  gradeTag: {
+    width: 34,
+    textAlign: 'center',
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: '600',
+    overflow: 'hidden',
+  },
+  editRow: { flexDirection: 'row', gap: 8 },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 3 },
 })
