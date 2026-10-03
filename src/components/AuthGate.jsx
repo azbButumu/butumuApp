@@ -108,7 +108,7 @@ function SignInScreen() {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <h1 className="auth-title">部室アプリ</h1>
+        <h1 className="auth-title">物無App</h1>
         <p className="auth-lead">
           {isSignUp ? '新しいアカウントを作成します。' : '部員向けのアプリです。ログインしてください。'}
         </p>

@@ -118,7 +118,7 @@ function SignInScreen() {
       contentContainerStyle={styles.page}
       keyboardShouldPersistTaps="handled">
       <View style={[styles.card, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <Text style={[styles.title, { color: c.text }]}>部室アプリ</Text>
+        <Text style={[styles.title, { color: c.text }]}>物無App</Text>
         <Text style={[styles.lead, { color: c.textMuted }]}>
           {isSignUp
             ? '新しいアカウントを作成します。'

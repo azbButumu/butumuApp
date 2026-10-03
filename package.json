@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
-    "sync-config": "node scripts/sync-firebase-config.mjs"
+    "sync-config": "node scripts/sync-firebase-config.mjs",
+    "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "firebase": "^12.19.0",
