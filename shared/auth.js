@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
-import { ref, set } from 'firebase/database'
+import { ref, set, update } from 'firebase/database'
 import { db } from './firebase'
 
 // 新規登録に必要な共通の招待コード。
@@ -48,12 +48,22 @@ export function signOutUser() {
 }
 
 // 部員として登録する。招待コードはアプリ側で照合済みのものを記録に残す。
-export function joinWithCode(user, code) {
+export function joinWithCode(user, code, profile = {}) {
   return set(ref(db, `members/${user.uid}`), {
     code: code.trim(),
     joinedAt: Date.now(),
     email: user.email || '',
     provider: user.providerData?.[0]?.providerId || 'unknown',
+    name: String(profile.name || '').trim(),
+    grade: profile.grade || '',
+  })
+}
+
+// 既に登録済みの部員が本名・学年を入れ直す
+export function updateProfile(uid, profile) {
+  return update(ref(db, `members/${uid}`), {
+    name: String(profile.name || '').trim(),
+    grade: profile.grade || '',
   })
 }
 

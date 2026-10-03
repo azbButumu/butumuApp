@@ -12,11 +12,13 @@ import {
   sendResetEmail,
   setAuth,
   signInWithEmail,
+  updateProfile,
   signOutUser,
   signUpWithEmail,
   subscribeAuthState,
 } from '@shared/auth'
 import { app } from '@shared/firebase'
+import { GRADES, isProfileComplete } from '@shared/members'
 import { subscribeValue } from '@shared/firebaseData'
 
 import { Btn, Field, Input } from '@/components/ui'
@@ -61,7 +63,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     )
   }
   if (!user) return <SignInScreen />
-  if (!member) return <JoinScreen user={user} />
+  if (!member) return <JoinScreen user={user} needsCode />
+  if (!isProfileComplete(member)) return <JoinScreen user={user} />
   return <>{children}</>
 }
 
@@ -71,6 +74,8 @@ function SignInScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [invite, setInvite] = useState('')
+  const [name, setName] = useState('')
+  const [grade, setGrade] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -78,15 +83,25 @@ function SignInScreen() {
   async function submit() {
     setError('')
     setInfo('')
-    if (isSignUp && invite.trim() !== INVITE_CODE) {
-      setError('招待パスワードが違います。')
-      return
+    if (isSignUp) {
+      if (invite.trim() !== INVITE_CODE) {
+        setError('招待パスワードが違います。')
+        return
+      }
+      if (!name.trim()) {
+        setError('本名を入力してください。')
+        return
+      }
+      if (!grade) {
+        setError('学年を選んでください。')
+        return
+      }
     }
     setBusy(true)
     try {
       if (isSignUp) {
         const cred = await signUpWithEmail(email, password)
-        await joinWithCode(cred.user, invite)
+        await joinWithCode(cred.user, invite, { name, grade })
       } else {
         await signInWithEmail(email, password)
       }
@@ -168,15 +183,23 @@ function SignInScreen() {
           />
         </Field>
         {isSignUp && (
-          <Field label="招待パスワード">
-            <Input
-              value={invite}
-              onChangeText={setInvite}
-              placeholder="部内で共有されているもの"
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </Field>
+          <>
+            <Field label="本名">
+              <Input value={name} onChangeText={setName} placeholder="例: 山田 太郎" />
+            </Field>
+            <Field label="学年">
+              <GradePicker value={grade} onChange={setGrade} />
+            </Field>
+            <Field label="招待パスワード">
+              <Input
+                value={invite}
+                onChangeText={setInvite}
+                placeholder="部内で共有されているもの"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </Field>
+          </>
         )}
 
         {error ? <Notice text={error} kind="error" /> : null}
@@ -255,21 +278,35 @@ function GoogleButton({
   )
 }
 
-function JoinScreen({ user }: { user: any }) {
+function JoinScreen({ user, needsCode = false }: { user: any; needsCode?: boolean }) {
   const c = useTheme()
   const [invite, setInvite] = useState('')
+  const [name, setName] = useState('')
+  const [grade, setGrade] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function submit() {
     setError('')
-    if (invite.trim() !== INVITE_CODE) {
+    if (needsCode && invite.trim() !== INVITE_CODE) {
       setError('招待パスワードが違います。')
+      return
+    }
+    if (!name.trim()) {
+      setError('本名を入力してください。')
+      return
+    }
+    if (!grade) {
+      setError('学年を選んでください。')
       return
     }
     setBusy(true)
     try {
-      await joinWithCode(user, invite)
+      if (needsCode) {
+        await joinWithCode(user, invite, { name, grade })
+      } else {
+        await updateProfile(user.uid, { name, grade })
+      }
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
@@ -283,17 +320,29 @@ function JoinScreen({ user }: { user: any }) {
       contentContainerStyle={styles.page}
       keyboardShouldPersistTaps="handled">
       <View style={[styles.card, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <Text style={[styles.title, { color: c.text }]}>招待パスワード</Text>
+        <Text style={[styles.title, { color: c.text }]}>
+          {needsCode ? '部員登録' : 'プロフィールの入力'}
+        </Text>
         <Text style={[styles.lead, { color: c.textMuted }]}>
           {user.email || 'このアカウント'} でログインしました。{'\n'}
-          部内で共有されている招待パスワードを入力してください。
+          {needsCode
+            ? '招待パスワードと、あなたの情報を入力してください。'
+            : '本名と学年が未登録です。入力してください。'}
         </Text>
-        <Field label="招待パスワード">
-          <Input value={invite} onChangeText={setInvite} secureTextEntry autoCapitalize="none" />
+        <Field label="本名">
+          <Input value={name} onChangeText={setName} placeholder="例: 山田 太郎" />
         </Field>
+        <Field label="学年">
+          <GradePicker value={grade} onChange={setGrade} />
+        </Field>
+        {needsCode && (
+          <Field label="招待パスワード">
+            <Input value={invite} onChangeText={setInvite} secureTextEntry autoCapitalize="none" />
+          </Field>
+        )}
         {error ? <Notice text={error} kind="error" /> : null}
         <Btn
-          label={busy ? '確認中...' : '続ける'}
+          label={busy ? '保存中...' : '続ける'}
           variant="primary"
           disabled={busy}
           onPress={submit}
@@ -303,6 +352,33 @@ function JoinScreen({ user }: { user: any }) {
         </Pressable>
       </View>
     </ScrollView>
+  )
+}
+
+export function GradePicker({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (g: string) => void
+}) {
+  const c = useTheme()
+  return (
+    <View style={styles.gradeRow}>
+      {GRADES.map((g: string) => (
+        <Pressable
+          key={g}
+          onPress={() => onChange(g)}
+          style={[
+            styles.gradeChip,
+            value === g
+              ? { backgroundColor: c.accent, borderColor: 'transparent' }
+              : { backgroundColor: c.hoverBg, borderColor: c.border },
+          ]}>
+          <Text style={{ fontSize: 13, color: value === g ? '#fff' : c.text }}>{g}</Text>
+        </Pressable>
+      ))}
+    </View>
   )
 }
 
@@ -343,4 +419,13 @@ const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
   line: { flex: 1, height: StyleSheet.hairlineWidth },
   note: { fontSize: 11, lineHeight: 17, marginTop: 12 },
+  gradeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  gradeChip: {
+    flex: 1,
+    minWidth: 44,
+    paddingVertical: 9,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+  },
 })

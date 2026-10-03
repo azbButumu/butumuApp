@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import { app } from '../../shared/firebase'
 import { subscribeValue } from '../../shared/firebaseData'
+import { GRADES, isProfileComplete } from '../../shared/members'
 import {
   INVITE_CODE,
   authErrorMessage,
   joinWithCode,
   sendResetEmail,
   setAuth,
+  updateProfile,
   signInWithEmail,
   signOutUser,
   signUpWithEmail,
@@ -38,7 +40,8 @@ function AuthGate({ children }) {
   if (member === undefined) {
     return <div className="auth-screen"><div className="auth-loading">確認中...</div></div>
   }
-  if (!member) return <JoinScreen user={user} />
+  if (!member) return <JoinScreen user={user} needsCode />
+  if (!isProfileComplete(member)) return <JoinScreen user={user} />
   return children
 }
 
@@ -47,6 +50,8 @@ function SignInScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [invite, setInvite] = useState('')
+  const [name, setName] = useState('')
+  const [grade, setGrade] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,15 +62,25 @@ function SignInScreen() {
     e.preventDefault()
     setError('')
     setInfo('')
-    if (isSignUp && invite.trim() !== INVITE_CODE) {
-      setError('招待パスワードが違います。')
-      return
+    if (isSignUp) {
+      if (invite.trim() !== INVITE_CODE) {
+        setError('招待パスワードが違います。')
+        return
+      }
+      if (!name.trim()) {
+        setError('本名を入力してください。')
+        return
+      }
+      if (!grade) {
+        setError('学年を選んでください。')
+        return
+      }
     }
     setBusy(true)
     try {
       if (isSignUp) {
         const cred = await signUpWithEmail(email, password)
-        await joinWithCode(cred.user, invite)
+        await joinWithCode(cred.user, invite, { name, grade })
       } else {
         await signInWithEmail(email, password)
       }
@@ -152,15 +167,40 @@ function SignInScreen() {
             />
           </div>
           {isSignUp && (
-            <div className="field">
-              <label>招待パスワード</label>
-              <input
-                type="password"
-                value={invite}
-                onChange={(e) => setInvite(e.target.value)}
-                placeholder="部内で共有されているもの"
-              />
-            </div>
+            <>
+              <div className="field">
+                <label>本名</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="例: 山田 太郎"
+                />
+              </div>
+              <div className="field">
+                <label>学年</label>
+                <div className="grade-row">
+                  {GRADES.map((g) => (
+                    <button
+                      type="button"
+                      key={g}
+                      className={`grade-chip ${grade === g ? 'active' : ''}`}
+                      onClick={() => setGrade(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <label>招待パスワード</label>
+                <input
+                  type="password"
+                  value={invite}
+                  onChange={(e) => setInvite(e.target.value)}
+                  placeholder="部内で共有されているもの"
+                />
+              </div>
+            </>
           )}
 
           {error && <div className="auth-error">{error}</div>}
@@ -191,21 +231,35 @@ function SignInScreen() {
   )
 }
 
-function JoinScreen({ user }) {
+function JoinScreen({ user, needsCode = false }) {
   const [invite, setInvite] = useState('')
+  const [name, setName] = useState('')
+  const [grade, setGrade] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function submit(e) {
     e.preventDefault()
     setError('')
-    if (invite.trim() !== INVITE_CODE) {
+    if (needsCode && invite.trim() !== INVITE_CODE) {
       setError('招待パスワードが違います。')
+      return
+    }
+    if (!name.trim()) {
+      setError('本名を入力してください。')
+      return
+    }
+    if (!grade) {
+      setError('学年を選んでください。')
       return
     }
     setBusy(true)
     try {
-      await joinWithCode(user, invite)
+      if (needsCode) {
+        await joinWithCode(user, invite, { name, grade })
+      } else {
+        await updateProfile(user.uid, { name, grade })
+      }
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
@@ -216,25 +270,52 @@ function JoinScreen({ user }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <h1 className="auth-title">招待パスワード</h1>
+        <h1 className="auth-title">{needsCode ? '部員登録' : 'プロフィールの入力'}</h1>
         <p className="auth-lead">
           {user.email || 'このアカウント'} でログインしました。
           <br />
-          部内で共有されている招待パスワードを入力してください。
+          {needsCode
+            ? '招待パスワードと、あなたの情報を入力してください。'
+            : '本名と学年が未登録です。入力してください。'}
         </p>
         <form onSubmit={submit}>
           <div className="field">
-            <label>招待パスワード</label>
+            <label>本名</label>
             <input
-              type="password"
-              value={invite}
-              onChange={(e) => setInvite(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例: 山田 太郎"
               autoFocus
             />
           </div>
+          <div className="field">
+            <label>学年</label>
+            <div className="grade-row">
+              {GRADES.map((g) => (
+                <button
+                  type="button"
+                  key={g}
+                  className={`grade-chip ${grade === g ? 'active' : ''}`}
+                  onClick={() => setGrade(g)}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+          {needsCode && (
+            <div className="field">
+              <label>招待パスワード</label>
+              <input
+                type="password"
+                value={invite}
+                onChange={(e) => setInvite(e.target.value)}
+              />
+            </div>
+          )}
           {error && <div className="auth-error">{error}</div>}
           <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? '確認中...' : '続ける'}
+            {busy ? '保存中...' : '続ける'}
           </button>
         </form>
         <button type="button" className="auth-link" onClick={signOutUser}>
