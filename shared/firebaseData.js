@@ -1,5 +1,5 @@
 import { ref, onValue, push, set, update, remove } from 'firebase/database'
-import { db } from '../firebase'
+import { db } from './firebase'
 
 export function subscribeList(path, callback) {
   const listRef = ref(db, path)

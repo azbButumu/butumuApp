@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { toDateStr, todayStr, weekdayJa } from '../lib/date'
+import { toDateStr, todayStr, weekdayJa } from '../../shared/date'
 import './MiniCalendar.css'
 
 const MAX_VISIBLE_EVENTS = 3

@@ -7,11 +7,11 @@ import {
   addItem,
   updateItem,
   removeItem,
-} from '../lib/firebaseData'
-import { expandEventsByDate, isOccurrenceSkipped } from '../lib/calendarEvents'
-import { TAGS, TAG_COLORS } from '../lib/tags'
-import { todayStr, formatDateJa, weekdayJaOf } from '../lib/date'
-import { normalizeRotation, overridesByDate, resolveDuty } from '../lib/duty'
+} from '../../shared/firebaseData'
+import { expandEventsByDate, isOccurrenceSkipped } from '../../shared/calendarEvents'
+import { TAGS, TAG_COLORS } from '../../shared/tags'
+import { todayStr, formatDateJa, weekdayJaOf } from '../../shared/date'
+import { normalizeRotation, overridesByDate, resolveDuty } from '../../shared/duty'
 import './Calendar.css'
 
 const EMPTY_FORM = {

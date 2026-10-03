@@ -7,16 +7,16 @@ import {
   setItem,
   setValue,
   removeItem,
-} from '../lib/firebaseData'
-import { expandEventsByDate } from '../lib/calendarEvents'
-import { todayStr, addDays, formatDateJa } from '../lib/date'
+} from '../../shared/firebaseData'
+import { expandEventsByDate } from '../../shared/calendarEvents'
+import { todayStr, addDays, formatDateJa } from '../../shared/date'
 import {
   normalizeRotation,
   overridesByDate,
   resolveDuty,
   dutiesFrom,
   cycleLabel,
-} from '../lib/duty'
+} from '../../shared/duty'
 import './Home.css'
 
 function Home({ onNavigate }) {
