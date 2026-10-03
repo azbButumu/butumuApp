@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Google from 'expo-auth-session/providers/google'
 import { GoogleAuthProvider, getReactNativePersistence, initializeAuth, signInWithCredential } from 'firebase/auth'
 import { ReactNode, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import {
   INVITE_CODE,
@@ -21,6 +21,16 @@ import { subscribeValue } from '@shared/firebaseData'
 
 import { Btn, Field, Input } from '@/components/ui'
 import { useTheme } from '@/theme'
+
+// Google ログインに必要なクライアントIDはプラットフォームごとに違う。
+// これが無いまま useIdTokenAuthRequest を呼ぶと例外になるため、
+// フックは GoogleButton の中に置き、ID がある場合だけマウントする。
+const GOOGLE_CLIENT_ID =
+  Platform.OS === 'ios'
+    ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+    : Platform.OS === 'android'
+      ? process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
+      : process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
 
 // React Native では永続化に AsyncStorage を明示的に渡す必要がある
 // (指定しないと再起動ごとにログアウトしてしまう)
@@ -64,23 +74,6 @@ function SignInScreen() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
-
-  // Google ログイン。クライアントIDが未設定ならボタンを出さない。
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: webClientId,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  })
-
-  useEffect(() => {
-    if (response?.type !== 'success') return
-    const idToken = response.params?.id_token
-    if (!idToken) return
-    signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).catch((err) =>
-      setError(authErrorMessage(err)),
-    )
-  }, [response])
 
   async function submit() {
     setError('')
@@ -202,30 +195,63 @@ function SignInScreen() {
           </Pressable>
         )}
 
-        {webClientId ? (
+        {GOOGLE_CLIENT_ID ? (
           <>
             <View style={styles.divider}>
               <View style={[styles.line, { backgroundColor: c.border }]} />
               <Text style={{ fontSize: 11, color: c.textMuted }}>または</Text>
               <View style={[styles.line, { backgroundColor: c.border }]} />
             </View>
-            <Btn
-              label="Google でログイン"
-              disabled={!request || busy}
-              onPress={() => promptAsync()}
-            />
+            <GoogleButton busy={busy} onError={setError} />
             <Text style={[styles.note, { color: c.textMuted }]}>
               初めて Google でログインする場合も、次の画面で招待パスワードの入力が必要です。
             </Text>
           </>
         ) : (
           <Text style={[styles.note, { color: c.textMuted }]}>
-            Google ログインは未設定です。mobile/.env に EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-            などを設定すると使えるようになります。
+            Google ログインは未設定です。mobile/.env にこの端末向けのクライアントID
+            ({Platform.OS === 'ios'
+              ? 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'
+              : Platform.OS === 'android'
+                ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'
+                : 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'}
+            ) を設定すると使えるようになります。
           </Text>
         )}
       </View>
     </ScrollView>
+  )
+}
+
+// クライアントIDがある場合のみマウントされる。フックをここに閉じ込めている。
+function GoogleButton({
+  busy,
+  onError,
+}: {
+  busy: boolean
+  onError: (msg: string) => void
+}) {
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  })
+
+  useEffect(() => {
+    if (response?.type !== 'success') return
+    const idToken = response.params?.id_token
+    if (!idToken) return
+    signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).catch((err) =>
+      onError(authErrorMessage(err)),
+    )
+  }, [response, onError])
+
+  return (
+    <Btn
+      label="Google でログイン"
+      disabled={!request || busy}
+      onPress={() => promptAsync()}
+    />
   )
 }
 
