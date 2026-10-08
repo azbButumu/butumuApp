@@ -8,6 +8,7 @@
     "scheme": "butumuapp",
     "userInterfaceStyle": "automatic",
     "android": {
+      "package": "com.butumu.butumuapp",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -34,6 +35,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2daf6f69-1b16-41dc-8fb4-4d134d1a9d86"
+      }
+    },
+    "owner": "karurera"
   }
 }
