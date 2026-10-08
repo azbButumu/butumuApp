@@ -9,11 +9,13 @@
   import { getDatabase, ref, set, onValue, remove, push, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   // shared/firebaseConfig.js から自動生成される(scripts/sync-firebase-config.mjs)
-  import { firebaseConfig } from "./firebase-config.js";
+  import { firebaseConfig, akibaFirebaseConfig } from "./firebase-config.js";
 
 
+  // ログイン判定は部室アプリのプロジェクト、データは旧 akiba-chu の DB を使う
   const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+  const akibaApp = initializeApp(akibaFirebaseConfig, "akiba");
+  const db = getDatabase(akibaApp);
 
   // DB はログイン必須になったため、認証が確定してから window._fb を公開する。
   // 親アプリ(部室アプリ)の iframe として開かれる場合は同一オリジンなので、

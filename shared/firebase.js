@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
-import { firebaseConfig } from './firebaseConfig'
+import { akibaFirebaseConfig, firebaseConfig } from './firebaseConfig'
 
 if (!firebaseConfig.databaseURL) {
   // 未設定のまま getDatabase() を呼ぶと分かりにくいエラーになるため、先に止める
@@ -12,3 +12,7 @@ if (!firebaseConfig.databaseURL) {
 
 export const app = initializeApp(firebaseConfig)
 export const db = getDatabase(app)
+
+// 秋葉注専用。旧プロジェクトの DB を別名のアプリとして開く
+export const akibaApp = initializeApp(akibaFirebaseConfig, 'akiba')
+export const akibaDb = getDatabase(akibaApp)

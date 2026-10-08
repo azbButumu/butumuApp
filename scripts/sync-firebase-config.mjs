@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const root = resolve(here, '..')
 
-const { firebaseConfig } = await import(
+const { firebaseConfig, akibaFirebaseConfig } = await import(
   new URL('../shared/firebaseConfig.js', import.meta.url).href
 )
 
@@ -19,7 +19,8 @@ writeFileSync(
   out,
   `// 自動生成ファイル。直接編集しないこと。\n` +
     `// 元: shared/firebaseConfig.js / 生成: scripts/sync-firebase-config.mjs\n` +
-    `export const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)}\n`,
+    `export const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)}\n` +
+    `export const akibaFirebaseConfig = ${JSON.stringify(akibaFirebaseConfig, null, 2)}\n`,
   'utf8',
 )
 

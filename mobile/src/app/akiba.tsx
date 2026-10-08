@@ -1,18 +1,11 @@
 // Web 版 public/akiba-chu.html のネイティブ移植。
 // Firebase のパス(orders / history / presets / helpText)は Web 版と同じなので
-// どちらから操作しても同じデータを見る。
+// どちらから操作しても同じデータを見る。秋葉注だけは旧 akiba-chu の DB を使う。
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import DEFAULT_PRESETS from '@shared/akibaPresets'
-import {
-  addItem,
-  removeItem,
-  setValue,
-  subscribeList,
-  subscribeValue,
-  updateItem,
-} from '@shared/firebaseData'
+import { akibaData } from '@shared/firebaseData'
 
 import { CustomAdd } from '@/components/akiba/CustomAdd'
 import { History, HistorySession } from '@/components/akiba/History'
@@ -21,6 +14,8 @@ import { PresetEditor } from '@/components/akiba/PresetEditor'
 import { PresetItem, Presets, QuickAdd } from '@/components/akiba/QuickAdd'
 import { AppModal, Btn, Chip } from '@/components/ui'
 import { useTheme } from '@/theme'
+
+const { addItem, removeItem, setValue, subscribeList, subscribeValue, updateItem } = akibaData
 
 type SubTab = 'quick' | 'custom' | 'list' | 'history' | 'admin'
 
