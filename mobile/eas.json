@@ -10,7 +10,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_WORKER_URL": "https://butumu-library.butumu.workers.dev"
+        "EXPO_PUBLIC_WORKER_URL": "https://butumu-library.butumu.workers.dev",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "449725453120-7q5iq7qns1a0ervk6gp3qd4tbkfv8fs3.apps.googleusercontent.com"
       }
     }
   }

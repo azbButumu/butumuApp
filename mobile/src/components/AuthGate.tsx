@@ -1,5 +1,11 @@
 // ログインと招待パスワードの関門。_layout.tsx でアプリ全体を包む。
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin'
 import * as Google from 'expo-auth-session/providers/google'
 import { GoogleAuthProvider, getReactNativePersistence, initializeAuth, signInWithCredential } from 'firebase/auth'
 import { ReactNode, useEffect, useState } from 'react'
@@ -27,12 +33,18 @@ import { useTheme } from '@/theme'
 // Google ログインに必要なクライアントIDはプラットフォームごとに違う。
 // これが無いまま useIdTokenAuthRequest を呼ぶと例外になるため、
 // フックは GoogleButton の中に置き、ID がある場合だけマウントする。
+//
+// Android はネイティブの Google Sign-In を使う。アプリ自体はパッケージ名と
+// 署名鍵の SHA-1 で識別されるので、渡すのは ID トークンの発行先になる
+// ウェブクライアントID だけでよい(Firebase がこの ID のトークンを受け付ける)。
 const GOOGLE_CLIENT_ID =
   Platform.OS === 'ios'
     ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-    : Platform.OS === 'android'
-      ? process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
-      : process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+    : process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+
+if (Platform.OS === 'android' && GOOGLE_CLIENT_ID) {
+  GoogleSignin.configure({ webClientId: GOOGLE_CLIENT_ID })
+}
 
 // React Native では永続化に AsyncStorage を明示的に渡す必要がある
 // (指定しないと再起動ごとにログアウトしてしまう)
@@ -235,9 +247,7 @@ function SignInScreen() {
             Google ログインは未設定です。mobile/.env にこの端末向けのクライアントID
             ({Platform.OS === 'ios'
               ? 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'
-              : Platform.OS === 'android'
-                ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'
-                : 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'}
+              : 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'}
             ) を設定すると使えるようになります。
           </Text>
         )}
@@ -246,18 +256,56 @@ function SignInScreen() {
   )
 }
 
-// クライアントIDがある場合のみマウントされる。フックをここに閉じ込めている。
-function GoogleButton({
-  busy,
-  onError,
-}: {
+type GoogleButtonProps = {
   busy: boolean
   onError: (msg: string) => void
-}) {
+}
+
+// クライアントIDがある場合のみマウントされる
+function GoogleButton(props: GoogleButtonProps) {
+  return Platform.OS === 'android' ? <AndroidGoogleButton {...props} /> : <WebGoogleButton {...props} />
+}
+
+function AndroidGoogleButton({ busy, onError }: GoogleButtonProps) {
+  const [signingIn, setSigningIn] = useState(false)
+
+  async function signIn() {
+    setSigningIn(true)
+    try {
+      await GoogleSignin.hasPlayServices()
+      const res = await GoogleSignin.signIn()
+      // キャンセル時は何もしない
+      if (!isSuccessResponse(res)) return
+      const idToken = res.data.idToken
+      if (!idToken) {
+        onError('Google から ID トークンを受け取れませんでした。')
+        return
+      }
+      await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))
+    } catch (err: any) {
+      if (isErrorWithCode(err)) {
+        if (err.code === statusCodes.IN_PROGRESS) return
+        if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          onError('この端末では Google Play 開発者サービスが使えません。')
+          return
+        }
+        onError(`Google ログインに失敗しました(${err.code})。`)
+        return
+      }
+      onError(authErrorMessage(err))
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
+  return <Btn label="Google でログイン" disabled={busy || signingIn} onPress={signIn} />
+}
+
+// iOS / Web はブラウザ経由の OAuth。フックをここに閉じ込めている
+function WebGoogleButton({ busy, onError }: GoogleButtonProps) {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   })
 
   useEffect(() => {
