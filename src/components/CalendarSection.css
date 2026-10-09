@@ -169,3 +169,14 @@
 .occurrence-box.cancelled .occurrence-note {
   color: var(--danger);
 }
+
+.event-notify {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.field .notify-time {
+  margin: 8px 0 6px;
+  width: auto;
+}

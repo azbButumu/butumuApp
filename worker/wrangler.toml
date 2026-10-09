@@ -5,3 +5,8 @@ compatibility_date = "2025-01-01"
 [[r2_buckets]]
 binding = "LIBRARY_BUCKET"
 bucket_name = "butumu-library"
+
+# カレンダーの「通知する」予定を、当日の指定時刻に通知する。
+# 時刻は15分単位(shared/notifications.js の NOTIFY_STEP_MINUTES と合わせる)
+[triggers]
+crons = ["*/15 * * * *"]

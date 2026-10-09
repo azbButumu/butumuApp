@@ -14,8 +14,13 @@ import {
   isOccurrenceSkipped,
   visibleEvents,
 } from '../../shared/calendarEvents'
+import {
+  DEFAULT_NOTIFY_TIME,
+  NOTIFY_STEP_MINUTES,
+  eventNotifyTime,
+  normalizeNotifyTime,
+} from '../../shared/notifications'
 import { projectsOfUser } from '../../shared/projects'
-import { requestEventNotification } from '../../shared/notifyClient'
 import { TAGS, TAG_COLORS } from '../../shared/tags'
 import { todayStr, formatDateJa, weekdayJaOf } from '../../shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '../../shared/duty'
@@ -31,9 +36,8 @@ const EMPTY_FORM = {
   repeatUntil: '',
   projectId: '',
   notify: true,
+  notifyTime: DEFAULT_NOTIFY_TIME,
 }
-
-const WORKER_URL = import.meta.env.VITE_WORKER_URL
 
 function CalendarSection() {
   const [events, setEvents] = useState([])
@@ -104,8 +108,8 @@ function CalendarSection() {
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
       projectId: ev.projectId || '',
-      // 変更のたびに通知が飛ばないよう、編集時は既定でオフ
-      notify: false,
+      notify: ev.notify === true,
+      notifyTime: eventNotifyTime(ev),
     })
     setFormOpen(true)
   }
@@ -144,6 +148,8 @@ function CalendarSection() {
         weekly && form.repeatUntil && form.repeatUntil >= form.startDate ? form.repeatUntil : '',
       projectId: project ? project.id : '',
       projectName: project ? project.name : '',
+      notify: form.notify,
+      notifyTime: normalizeNotifyTime(form.notifyTime),
       updatedAt: Date.now(),
     }
     // くりかえしをやめたら、残った除外日が単発の予定を中止扱いにしないよう消す
@@ -152,11 +158,6 @@ function CalendarSection() {
       updateItem('calendarEvents', editing.id, payload)
     } else {
       addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
-    }
-    if (form.notify) {
-      requestEventNotification(WORKER_URL, payload, editing ? 'updated' : 'created').catch((err) =>
-        window.alert(`予定は保存しましたが、通知を送れませんでした。\n${err.message}`),
-      )
     }
     closeForm()
   }
@@ -216,6 +217,9 @@ function CalendarSection() {
               )}
               {skipped && <span className="event-cancelled">中止</span>}
               {ev.repeat === 'weekly' && <span className="event-repeat">毎週</span>}
+              {ev.notify === true && (
+                <span className="event-notify">🔔{eventNotifyTime(ev)}</span>
+              )}
               {ev.endDate && (
                 <span className="event-range">
                   〜{ev.endDate.slice(5).replace('-', '/')}
@@ -366,7 +370,7 @@ function CalendarSection() {
             </p>
           </div>
           <div className="field">
-            <label>通知</label>
+            <label>当日の通知</label>
             <div className="project-select">
               <button
                 type="button"
@@ -384,11 +388,22 @@ function CalendarSection() {
               </button>
             </div>
             {form.notify && (
-              <p className="field-hint">
-                {form.projectId
-                  ? 'この制作のメンバーのうち、アプリ版を使っている人に通知を送ります。'
-                  : 'アプリ版を使っている部員に通知を送ります(受け取るかどうかは各自の設定によります)。'}
-              </p>
+              <>
+                <input
+                  type="time"
+                  className="notify-time"
+                  step={NOTIFY_STEP_MINUTES * 60}
+                  value={form.notifyTime}
+                  onChange={(e) => setForm({ ...form, notifyTime: e.target.value })}
+                />
+                <p className="field-hint">
+                  予定の日(毎週なら各回)の{normalizeNotifyTime(form.notifyTime)}に、
+                  {form.projectId
+                    ? 'この制作のメンバーのうちアプリ版を使っている人に通知します。'
+                    : 'アプリ版を使っている部員に通知します(受け取るかどうかは各自の設定によります)。'}
+                  時刻は{NOTIFY_STEP_MINUTES}分単位です。
+                </p>
+              </>
             )}
           </div>
           <div className="field">

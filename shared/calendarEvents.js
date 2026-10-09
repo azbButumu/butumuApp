@@ -26,6 +26,16 @@ export function isOccurrenceSkipped(ev, start) {
   return Boolean(ev.skipDates && ev.skipDates[start])
 }
 
+// その日に始まる回がある予定(毎週なら各回の初日。中止された回は除く)
+export function eventsStartingOn(events, date) {
+  return events.filter(
+    (ev) =>
+      ev.date &&
+      occurrenceStarts(ev, date).includes(date) &&
+      !isOccurrenceSkipped(ev, date),
+  )
+}
+
 // 制作限定の予定(projectId あり)は、その制作に所属している人にだけ見せる。
 // 制作が削除された・自分が抜けた場合も見えなくなる
 export function isEventVisibleTo(ev, projectsById, uid) {

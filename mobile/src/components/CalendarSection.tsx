@@ -1,18 +1,24 @@
 // Web 版 src/components/CalendarSection.jsx の移植。ホームから使う。
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { getAuthInstance } from '@shared/auth'
 import { expandEventsByDate, isOccurrenceSkipped, visibleEvents } from '@shared/calendarEvents'
 import { formatDateJa, todayStr, weekdayJaOf } from '@shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '@shared/duty'
 import { addItem, removeItem, subscribeList, subscribeValue, updateItem } from '@shared/firebaseData'
-import { requestEventNotification } from '@shared/notifyClient'
+import {
+  DEFAULT_NOTIFY_TIME,
+  NOTIFY_STEP_MINUTES,
+  eventNotifyTime,
+  normalizeNotifyTime,
+} from '@shared/notifications'
 import { projectsOfUser } from '@shared/projects'
 import { TAG_COLORS, TAGS } from '@shared/tags'
 
 import { DateField } from './DateField'
 import { DayEvent, MiniCalendar } from './MiniCalendar'
+import { TimeField } from './TimeField'
 import {
   AppModal,
   Btn,
@@ -38,9 +44,8 @@ const EMPTY_FORM = {
   repeatUntil: '',
   projectId: '',
   notify: true,
+  notifyTime: DEFAULT_NOTIFY_TIME,
 }
-
-const WORKER_URL = process.env.EXPO_PUBLIC_WORKER_URL
 
 export function CalendarSection() {
   const c = useTheme()
@@ -113,8 +118,8 @@ export function CalendarSection() {
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
       projectId: ev.projectId || '',
-      // 変更のたびに通知が飛ばないよう、編集時は既定でオフ
-      notify: false,
+      notify: ev.notify === true,
+      notifyTime: eventNotifyTime(ev),
     })
     setFormOpen(true)
   }
@@ -153,6 +158,8 @@ export function CalendarSection() {
         weekly && form.repeatUntil && form.repeatUntil >= form.startDate ? form.repeatUntil : '',
       projectId: project ? project.id : '',
       projectName: project ? project.name : '',
+      notify: form.notify,
+      notifyTime: normalizeNotifyTime(form.notifyTime),
       updatedAt: Date.now(),
     }
     // くりかえしをやめたら、残った除外日が単発の予定を中止扱いにしないよう消す
@@ -161,12 +168,6 @@ export function CalendarSection() {
       updateItem('calendarEvents', editing.id, payload)
     } else {
       addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
-    }
-    if (form.notify) {
-      requestEventNotification(WORKER_URL, payload, editing ? 'updated' : 'created').catch(
-        (err: any) =>
-          Alert.alert('通知を送れませんでした', `予定は保存されています。\n${err.message}`),
-      )
     }
     closeForm()
   }
@@ -237,6 +238,9 @@ export function CalendarSection() {
                 <View style={[styles.badge, { backgroundColor: c.accentBg }]}>
                   <Text style={{ fontSize: 10, fontWeight: '600', color: c.accent }}>毎週</Text>
                 </View>
+              )}
+              {ev.notify === true && (
+                <Text style={{ fontSize: 10, color: c.textMuted }}>🔔{eventNotifyTime(ev)}</Text>
               )}
               {ev.endDate ? (
                 <Text style={{ fontSize: 11, color: c.textMuted }}>
@@ -388,7 +392,7 @@ export function CalendarSection() {
           </Text>
         </Field>
 
-        <Field label="通知">
+        <Field label="当日の通知">
           <View style={styles.chipRow}>
             <Chip
               label="通知する"
@@ -402,11 +406,22 @@ export function CalendarSection() {
             />
           </View>
           {form.notify && (
-            <Text style={{ marginTop: 6, fontSize: 11, color: c.textMuted, lineHeight: 17 }}>
-              {form.projectId
-                ? 'この制作のメンバーのうち、アプリ版を使っている人に通知を送ります。'
-                : 'アプリ版を使っている部員に通知を送ります(受け取るかどうかは各自の設定によります)。'}
-            </Text>
+            <>
+              <View style={{ marginTop: 8 }}>
+                <TimeField
+                  value={form.notifyTime}
+                  step={NOTIFY_STEP_MINUTES}
+                  onChange={(v) => setForm({ ...form, notifyTime: v })}
+                />
+              </View>
+              <Text style={{ marginTop: 6, fontSize: 11, color: c.textMuted, lineHeight: 17 }}>
+                予定の日(毎週なら各回)の{normalizeNotifyTime(form.notifyTime)}に、
+                {form.projectId
+                  ? 'この制作のメンバーのうちアプリ版を使っている人に通知します。'
+                  : 'アプリ版を使っている部員に通知します(受け取るかどうかは各自の設定によります)。'}
+                時刻は{NOTIFY_STEP_MINUTES}分単位です。
+              </Text>
+            </>
           )}
         </Field>
 

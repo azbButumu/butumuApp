@@ -53,7 +53,7 @@ export function NotificationSettingsCard({ projects, uid }: { projects: any[]; u
     <Card>
       <CardTitle>通知</CardTitle>
       <Text style={[styles.sub, { color: c.textMuted }]}>
-        カレンダーに「通知する」で追加・変更された予定を、この設定に合わせてお知らせします。
+        カレンダーで「通知する」にした予定を、当日の指定された時刻に、この設定に合わせてお知らせします。
       </Text>
 
       {permission && !permission.granted && (
