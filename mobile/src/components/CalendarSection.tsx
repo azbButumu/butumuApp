@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { expandEventsByDate, isOccurrenceSkipped } from '@shared/calendarEvents'
+import { getAuthInstance } from '@shared/auth'
+import { expandEventsByDate, isOccurrenceSkipped, visibleEvents } from '@shared/calendarEvents'
 import { formatDateJa, todayStr, weekdayJaOf } from '@shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '@shared/duty'
 import { addItem, removeItem, subscribeList, subscribeValue, updateItem } from '@shared/firebaseData'
+import { projectsOfUser } from '@shared/projects'
 import { TAG_COLORS, TAGS } from '@shared/tags'
 
 import { DateField } from './DateField'
@@ -33,6 +35,7 @@ const EMPTY_FORM = {
   note: '',
   repeat: '',
   repeatUntil: '',
+  projectId: '',
 }
 
 export function CalendarSection() {
@@ -45,12 +48,16 @@ export function CalendarSection() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [rotationRaw, setRotationRaw] = useState<any>(null)
   const [overrides, setOverrides] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+
+  const uid = getAuthInstance().currentUser?.uid
 
   useEffect(() => {
     const unsubs = [
       subscribeList('calendarEvents', setEvents),
       subscribeList('dutyOverrides', setOverrides),
       subscribeValue('dutyRotation', setRotationRaw),
+      subscribeList('projects', setProjects),
     ]
     return () => unsubs.forEach((u) => u())
   }, [])
@@ -62,9 +69,16 @@ export function CalendarSection() {
     [rotation, overrideMap],
   )
 
+  // 公開範囲に選べるのは自分が所属している制作だけ
+  const myProjects = useMemo(() => projectsOfUser(projects, uid), [projects, uid])
+  const projectNames = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])) as Record<string, string>,
+    [projects],
+  )
+
   const eventsByDate = useMemo(
-    () => expandEventsByDate(events) as Record<string, DayEvent[]>,
-    [events],
+    () => expandEventsByDate(visibleEvents(events, projects, uid)) as Record<string, DayEvent[]>,
+    [events, projects, uid],
   )
 
   const dayEvents = useMemo(
@@ -94,6 +108,7 @@ export function CalendarSection() {
       note: ev.note || '',
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
+      projectId: ev.projectId || '',
     })
     setFormOpen(true)
   }
@@ -119,6 +134,7 @@ export function CalendarSection() {
 
   function submitForm() {
     if (!form.title.trim() || !form.startDate) return
+    const project = myProjects.find((p: any) => p.id === form.projectId)
     const weekly = form.repeat === 'weekly'
     const payload: any = {
       title: form.title.trim(),
@@ -129,6 +145,8 @@ export function CalendarSection() {
       repeat: weekly ? 'weekly' : '',
       repeatUntil:
         weekly && form.repeatUntil && form.repeatUntil >= form.startDate ? form.repeatUntil : '',
+      projectId: project ? project.id : '',
+      projectName: project ? project.name : '',
       updatedAt: Date.now(),
     }
     // くりかえしをやめたら、残った除外日が単発の予定を中止扱いにしないよう消す
@@ -136,7 +154,7 @@ export function CalendarSection() {
     if (editing) {
       updateItem('calendarEvents', editing.id, payload)
     } else {
-      addItem('calendarEvents', { ...payload, createdAt: Date.now() })
+      addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
     }
     closeForm()
   }
@@ -189,6 +207,15 @@ export function CalendarSection() {
                 ]}>
                 {ev.title}
               </Text>
+              {ev.projectId ? (
+                <View style={[styles.badge, styles.projectBadge, { backgroundColor: c.accentBg }]}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 10, fontWeight: '600', color: c.accent }}>
+                    {projectNames[ev.projectId] || ev.projectName}のみ
+                  </Text>
+                </View>
+              ) : null}
               {skipped && (
                 <View style={[styles.badge, { backgroundColor: c.dangerBg }]}>
                   <Text style={{ fontSize: 10, fontWeight: '600', color: c.danger }}>中止</Text>
@@ -326,6 +353,29 @@ export function CalendarSection() {
           </View>
         </Field>
 
+        <Field label="公開範囲">
+          <View style={styles.chipRow}>
+            <Chip
+              label="全員"
+              active={form.projectId === ''}
+              onPress={() => setForm({ ...form, projectId: '' })}
+            />
+            {myProjects.map((p: any) => (
+              <Chip
+                key={p.id}
+                label={p.name}
+                active={form.projectId === p.id}
+                onPress={() => setForm({ ...form, projectId: p.id })}
+              />
+            ))}
+          </View>
+          <Text style={{ marginTop: 6, fontSize: 11, color: c.textMuted, lineHeight: 17 }}>
+            {myProjects.length === 0
+              ? '制作を選ぶと、その制作のメンバーだけに見える予定になります。設定タブの「制作グループ」から参加できます。'
+              : '制作を選ぶと、その制作のメンバーだけに見える予定になります。'}
+          </Text>
+        </Field>
+
         <Field label="メモ(任意)">
           <Input
             value={form.note}
@@ -349,6 +399,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: { flex: 1, fontSize: 13 },
   badge: { paddingVertical: 1, paddingHorizontal: 7, borderRadius: 99 },
+  projectBadge: { maxWidth: '40%' },
   occurrenceBox: {
     padding: 10,
     marginBottom: 14,

@@ -1,5 +1,6 @@
 import { TAG_COLORS } from './tags'
 import { addDays, diffDays, todayStr } from './date'
+import { isProjectMember } from './projects'
 
 // 終了日なしの「毎週」はこの範囲まで展開する
 const OPEN_ENDED_DAYS = 365 * 3
@@ -23,6 +24,21 @@ export function occurrenceStarts(ev, horizonEnd) {
 // 「この回だけ中止」された回かどうか(除外日は各回の初日で記録する)
 export function isOccurrenceSkipped(ev, start) {
   return Boolean(ev.skipDates && ev.skipDates[start])
+}
+
+// 制作限定の予定(projectId あり)は、その制作に所属している人にだけ見せる。
+// 制作が削除された・自分が抜けた場合も見えなくなる
+export function isEventVisibleTo(ev, projectsById, uid) {
+  if (!ev.projectId) return true
+  return isProjectMember(projectsById[ev.projectId], uid)
+}
+
+export function visibleEvents(events, projects, uid) {
+  const projectsById = {}
+  projects.forEach((p) => {
+    projectsById[p.id] = p
+  })
+  return events.filter((ev) => isEventVisibleTo(ev, projectsById, uid))
 }
 
 export function expandEventsByDate(events, baseDate = todayStr()) {

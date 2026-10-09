@@ -8,7 +8,13 @@ import {
   updateItem,
   removeItem,
 } from '../../shared/firebaseData'
-import { expandEventsByDate, isOccurrenceSkipped } from '../../shared/calendarEvents'
+import { getAuthInstance } from '../../shared/auth'
+import {
+  expandEventsByDate,
+  isOccurrenceSkipped,
+  visibleEvents,
+} from '../../shared/calendarEvents'
+import { projectsOfUser } from '../../shared/projects'
 import { TAGS, TAG_COLORS } from '../../shared/tags'
 import { todayStr, formatDateJa, weekdayJaOf } from '../../shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '../../shared/duty'
@@ -22,6 +28,7 @@ const EMPTY_FORM = {
   note: '',
   repeat: '',
   repeatUntil: '',
+  projectId: '',
 }
 
 function CalendarSection() {
@@ -33,12 +40,16 @@ function CalendarSection() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [rotationRaw, setRotationRaw] = useState(null)
   const [overrides, setOverrides] = useState([])
+  const [projects, setProjects] = useState([])
+
+  const uid = getAuthInstance().currentUser?.uid
 
   useEffect(() => {
     const unsubs = [
       subscribeList('calendarEvents', setEvents),
       subscribeList('dutyOverrides', setOverrides),
       subscribeValue('dutyRotation', setRotationRaw),
+      subscribeList('projects', setProjects),
     ]
     return () => unsubs.forEach((u) => u())
   }, [])
@@ -50,7 +61,17 @@ function CalendarSection() {
     [rotation, overrideMap],
   )
 
-  const eventsByDate = useMemo(() => expandEventsByDate(events), [events])
+  // 公開範囲に選べるのは自分が所属している制作だけ
+  const myProjects = useMemo(() => projectsOfUser(projects, uid), [projects, uid])
+  const projectNames = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  )
+
+  const eventsByDate = useMemo(
+    () => expandEventsByDate(visibleEvents(events, projects, uid)),
+    [events, projects, uid],
+  )
 
   const dayEvents = useMemo(
     () =>
@@ -78,6 +99,7 @@ function CalendarSection() {
       note: ev.note || '',
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
+      projectId: ev.projectId || '',
     })
     setFormOpen(true)
   }
@@ -103,6 +125,7 @@ function CalendarSection() {
 
   function submitForm() {
     if (!form.title.trim() || !form.startDate) return
+    const project = myProjects.find((p) => p.id === form.projectId)
     const weekly = form.repeat === 'weekly'
     const payload = {
       title: form.title.trim(),
@@ -113,6 +136,8 @@ function CalendarSection() {
       repeat: weekly ? 'weekly' : '',
       repeatUntil:
         weekly && form.repeatUntil && form.repeatUntil >= form.startDate ? form.repeatUntil : '',
+      projectId: project ? project.id : '',
+      projectName: project ? project.name : '',
       updatedAt: Date.now(),
     }
     // くりかえしをやめたら、残った除外日が単発の予定を中止扱いにしないよう消す
@@ -120,7 +145,7 @@ function CalendarSection() {
     if (editing) {
       updateItem('calendarEvents', editing.id, payload)
     } else {
-      addItem('calendarEvents', { ...payload, createdAt: Date.now() })
+      addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
     }
     closeForm()
   }
@@ -173,6 +198,11 @@ function CalendarSection() {
                 {ev.tag}
               </span>
               <span className="event-title">{ev.title}</span>
+              {ev.projectId && (
+                <span className="event-project">
+                  {projectNames[ev.projectId] || ev.projectName}のみ
+                </span>
+              )}
               {skipped && <span className="event-cancelled">中止</span>}
               {ev.repeat === 'weekly' && <span className="event-repeat">毎週</span>}
               {ev.endDate && (
@@ -296,6 +326,33 @@ function CalendarSection() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="field">
+            <label>公開範囲</label>
+            <div className="project-select">
+              <button
+                type="button"
+                className={`project-option ${form.projectId === '' ? 'active' : ''}`}
+                onClick={() => setForm({ ...form, projectId: '' })}
+              >
+                全員
+              </button>
+              {myProjects.map((p) => (
+                <button
+                  type="button"
+                  key={p.id}
+                  className={`project-option ${form.projectId === p.id ? 'active' : ''}`}
+                  onClick={() => setForm({ ...form, projectId: p.id })}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+            <p className="field-hint">
+              {myProjects.length === 0
+                ? '制作を選ぶと、その制作のメンバーだけに見える予定になります。設定タブの「制作グループ」から参加できます。'
+                : '制作を選ぶと、その制作のメンバーだけに見える予定になります。'}
+            </p>
           </div>
           <div className="field">
             <label>メモ(任意)</label>

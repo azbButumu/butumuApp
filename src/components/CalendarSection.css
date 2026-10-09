@@ -122,6 +122,24 @@
   color: var(--danger);
 }
 
+.event-project {
+  flex-shrink: 0;
+  max-width: 40%;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--accent-bg);
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-section .field-hint {
+  margin-top: 6px;
+}
+
 .occurrence-box {
   padding: 10px;
   margin-bottom: 14px;

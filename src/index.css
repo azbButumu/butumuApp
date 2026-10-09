@@ -62,3 +62,35 @@ button, input, textarea, select {
 a {
   color: var(--accent);
 }
+
+/* 制作の選択肢(3Dプリンター予約・カレンダーの公開範囲) */
+.project-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-option {
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 0.5px solid var(--border);
+  background: var(--hover-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.project-option.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
