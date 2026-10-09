@@ -1,12 +1,13 @@
 // Web 版 src/components/CalendarSection.jsx の移植。ホームから使う。
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { getAuthInstance } from '@shared/auth'
 import { expandEventsByDate, isOccurrenceSkipped, visibleEvents } from '@shared/calendarEvents'
 import { formatDateJa, todayStr, weekdayJaOf } from '@shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '@shared/duty'
 import { addItem, removeItem, subscribeList, subscribeValue, updateItem } from '@shared/firebaseData'
+import { requestEventNotification } from '@shared/notifyClient'
 import { projectsOfUser } from '@shared/projects'
 import { TAG_COLORS, TAGS } from '@shared/tags'
 
@@ -36,7 +37,10 @@ const EMPTY_FORM = {
   repeat: '',
   repeatUntil: '',
   projectId: '',
+  notify: true,
 }
+
+const WORKER_URL = process.env.EXPO_PUBLIC_WORKER_URL
 
 export function CalendarSection() {
   const c = useTheme()
@@ -109,6 +113,8 @@ export function CalendarSection() {
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
       projectId: ev.projectId || '',
+      // 変更のたびに通知が飛ばないよう、編集時は既定でオフ
+      notify: false,
     })
     setFormOpen(true)
   }
@@ -155,6 +161,12 @@ export function CalendarSection() {
       updateItem('calendarEvents', editing.id, payload)
     } else {
       addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
+    }
+    if (form.notify) {
+      requestEventNotification(WORKER_URL, payload, editing ? 'updated' : 'created').catch(
+        (err: any) =>
+          Alert.alert('通知を送れませんでした', `予定は保存されています。\n${err.message}`),
+      )
     }
     closeForm()
   }
@@ -374,6 +386,28 @@ export function CalendarSection() {
               ? '制作を選ぶと、その制作のメンバーだけに見える予定になります。設定タブの「制作グループ」から参加できます。'
               : '制作を選ぶと、その制作のメンバーだけに見える予定になります。'}
           </Text>
+        </Field>
+
+        <Field label="通知">
+          <View style={styles.chipRow}>
+            <Chip
+              label="通知する"
+              active={form.notify}
+              onPress={() => setForm({ ...form, notify: true })}
+            />
+            <Chip
+              label="通知しない"
+              active={!form.notify}
+              onPress={() => setForm({ ...form, notify: false })}
+            />
+          </View>
+          {form.notify && (
+            <Text style={{ marginTop: 6, fontSize: 11, color: c.textMuted, lineHeight: 17 }}>
+              {form.projectId
+                ? 'この制作のメンバーのうち、アプリ版を使っている人に通知を送ります。'
+                : 'アプリ版を使っている部員に通知を送ります(受け取るかどうかは各自の設定によります)。'}
+            </Text>
+          )}
         </Field>
 
         <Field label="メモ(任意)">

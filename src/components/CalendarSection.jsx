@@ -15,6 +15,7 @@ import {
   visibleEvents,
 } from '../../shared/calendarEvents'
 import { projectsOfUser } from '../../shared/projects'
+import { requestEventNotification } from '../../shared/notifyClient'
 import { TAGS, TAG_COLORS } from '../../shared/tags'
 import { todayStr, formatDateJa, weekdayJaOf } from '../../shared/date'
 import { normalizeRotation, overridesByDate, resolveDuty } from '../../shared/duty'
@@ -29,7 +30,10 @@ const EMPTY_FORM = {
   repeat: '',
   repeatUntil: '',
   projectId: '',
+  notify: true,
 }
+
+const WORKER_URL = import.meta.env.VITE_WORKER_URL
 
 function CalendarSection() {
   const [events, setEvents] = useState([])
@@ -100,6 +104,8 @@ function CalendarSection() {
       repeat: ev.repeat || '',
       repeatUntil: ev.repeatUntil || '',
       projectId: ev.projectId || '',
+      // 変更のたびに通知が飛ばないよう、編集時は既定でオフ
+      notify: false,
     })
     setFormOpen(true)
   }
@@ -146,6 +152,11 @@ function CalendarSection() {
       updateItem('calendarEvents', editing.id, payload)
     } else {
       addItem('calendarEvents', { ...payload, createdAt: Date.now(), createdBy: uid || '' })
+    }
+    if (form.notify) {
+      requestEventNotification(WORKER_URL, payload, editing ? 'updated' : 'created').catch((err) =>
+        window.alert(`予定は保存しましたが、通知を送れませんでした。\n${err.message}`),
+      )
     }
     closeForm()
   }
@@ -353,6 +364,32 @@ function CalendarSection() {
                 ? '制作を選ぶと、その制作のメンバーだけに見える予定になります。設定タブの「制作グループ」から参加できます。'
                 : '制作を選ぶと、その制作のメンバーだけに見える予定になります。'}
             </p>
+          </div>
+          <div className="field">
+            <label>通知</label>
+            <div className="project-select">
+              <button
+                type="button"
+                className={`project-option ${form.notify ? 'active' : ''}`}
+                onClick={() => setForm({ ...form, notify: true })}
+              >
+                通知する
+              </button>
+              <button
+                type="button"
+                className={`project-option ${!form.notify ? 'active' : ''}`}
+                onClick={() => setForm({ ...form, notify: false })}
+              >
+                通知しない
+              </button>
+            </div>
+            {form.notify && (
+              <p className="field-hint">
+                {form.projectId
+                  ? 'この制作のメンバーのうち、アプリ版を使っている人に通知を送ります。'
+                  : 'アプリ版を使っている部員に通知を送ります(受け取るかどうかは各自の設定によります)。'}
+              </p>
+            )}
           </div>
           <div className="field">
             <label>メモ(任意)</label>

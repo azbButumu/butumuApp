@@ -32,3 +32,9 @@ dist-ssr
 
 # shared/firebaseConfig.js から自動生成される
 public/firebase-config.js
+
+# ローカルでビルド・署名した APK
+dist-apk/
+
+# Firebase のサービスアカウント鍵(FCM 用・秘密)
+*firebase-adminsdk*.json

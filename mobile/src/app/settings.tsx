@@ -10,8 +10,10 @@ import { setValue, subscribeList, subscribeValue } from '@shared/firebaseData'
 
 import { DateField } from '@/components/DateField'
 import { GradePicker } from '@/components/AuthGate'
+import { NotificationSettingsCard } from '@/components/NotificationSettingsCard'
 import { ProjectsCard } from '@/components/ProjectsCard'
 import { Btn, Card, CardTitle, EmptyState, Field, Input } from '@/components/ui'
+import { unregisterForPush } from '@/notifications'
 import { useTheme } from '@/theme'
 
 export default function SettingsScreen() {
@@ -84,6 +86,12 @@ export default function SettingsScreen() {
   const uid = account?.uid
   const sortedAccounts = useMemo(() => sortMembers(accounts), [accounts])
   const me = accounts.find((m) => m.id === uid)
+
+  // この端末への通知を止めてからログアウトする(ログアウト後は DB に書けない)
+  async function logout() {
+    await unregisterForPush()
+    await signOutUser()
+  }
 
   function startEdit() {
     setEditName(me?.name || '')
@@ -164,6 +172,8 @@ export default function SettingsScreen() {
         {saved && <Text style={[styles.hint, { color: c.success }]}>保存しました</Text>}
       </Card>
 
+      <NotificationSettingsCard projects={projects} uid={uid} />
+
       <ProjectsCard projects={projects} members={accounts} uid={uid} />
 
       <Card>
@@ -229,7 +239,7 @@ export default function SettingsScreen() {
         )}
 
         <View style={{ marginTop: 12 }}>
-          <Btn label="ログアウト" variant="danger" onPress={signOutUser} />
+          <Btn label="ログアウト" variant="danger" onPress={logout} />
         </View>
       </Card>
 

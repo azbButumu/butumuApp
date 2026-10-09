@@ -28,6 +28,7 @@ import { GRADES, isProfileComplete } from '@shared/members'
 import { subscribeValue } from '@shared/firebaseData'
 
 import { Btn, Field, Input } from '@/components/ui'
+import { registerForPush } from '@/notifications'
 import { useTheme } from '@/theme'
 
 // Google ログインに必要なクライアントIDはプラットフォームごとに違う。
@@ -66,6 +67,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
     return subscribeValue(`members/${user.uid}`, setMember)
   }, [user])
+
+  // 部員として使える状態になったら、この端末で通知を受け取れるようにする
+  const ready = Boolean(user && member && isProfileComplete(member))
+  const readyUid = ready ? user.uid : null
+  useEffect(() => {
+    if (readyUid) registerForPush(readyUid)
+  }, [readyUid])
 
   if (user === undefined || (user && member === undefined)) {
     return (

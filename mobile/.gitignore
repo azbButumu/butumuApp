@@ -41,3 +41,7 @@ example
 # generated native folders
 /ios
 /android
+
+# EAS からダウンロードした署名鍵(ローカルビルド用・秘密)
+credentials.json
+credentials/
